@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>testing!</title>
+</head>
+<body>
+
+<form enctype="multipart/form-data" method="post" th:action="@{/sendEmail}">
+    </label><input name="to">
+    </label><input name="subject">
+    </label><input name="text">
+    <input multiple="multiple" name="files" type="file"/>
+
+    <button id="send email">Send email!</button>
+</form>
+</body>
+</html>
