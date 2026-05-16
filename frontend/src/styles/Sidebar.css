@@ -1,4 +1,4 @@
-body{
+body {
     margin: 0;
     font-family: Arial, Helvetica, sans-serif;
     background: #0b0b14;
@@ -6,12 +6,12 @@ body{
     overflow: hidden;
 }
 
-.layout{
+.layout {
     display: flex;
     height: 100vh;
 }
 
-.sidebar{
+.sidebar {
     width: 290px;
     height: 100vh;
     background: linear-gradient(180deg, #130d33, #302050);
@@ -23,7 +23,7 @@ body{
     flex-shrink: 0;
 }
 
-.accounts-wrapper{
+.accounts-wrapper {
     display: flex;
     flex-direction: column;
     gap: 18px;
@@ -32,12 +32,12 @@ body{
     padding-right: 4px;
 }
 
-.email-account{
+.email-account {
     display: flex;
     flex-direction: column;
 }
 
-.account-header{
+.account-header {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -50,25 +50,25 @@ body{
     flex-shrink: 0;
 }
 
-.account-header:hover{
+.account-header:hover {
     background: rgba(255, 255, 255, 0.06);
 }
 
-.account-email{
+.account-email {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     flex: 1;
 }
 
-.folder-list{
+.folder-list {
     margin-top: 8px;
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-.sidebar-item{
+.sidebar-item {
     border: none;
     background: transparent;
     color: white;
@@ -83,15 +83,15 @@ body{
     transition: background 0.2s;
 }
 
-.sidebar-item:hover{
+.sidebar-item:hover {
     background: rgba(255, 255, 255, 0.06);
 }
 
-.sidebar-item.active{
+.sidebar-item.active {
     background: rgba(128, 96, 255, 0.35);
 }
 
-.badge{
+.badge {
     margin-left: auto;
     background: red;
     color: white;
@@ -102,7 +102,7 @@ body{
     line-height: 1.2;
 }
 
-.badge.small{
+.badge.small {
     font-size: 10px;
     padding: 1px 5px;
 }

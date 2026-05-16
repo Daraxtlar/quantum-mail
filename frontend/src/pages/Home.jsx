@@ -1,9 +1,9 @@
-import Sidebar from "../components/Sidebar.jsx";
+import Login from "../pages/Login.jsx"
 
 
-function Home(){
-    return(
-        <Sidebar />
+function Home() {
+    return (
+        <Login/>
     )
 }
 

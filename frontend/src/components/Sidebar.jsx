@@ -8,24 +8,24 @@ const accounts = [
         id: 1,
         email: "JohnSmith@gmail.com",
         folders: [
-            {name:"Inbox", unread: 3},
-            {name:"Drafts"},
-            {name:"Sent"},
-            {name:"Starred"},
-            {name:"Spam", unread: 2},
-            {name:"Trash"},
+            {name: "Inbox", unread: 3},
+            {name: "Drafts"},
+            {name: "Sent"},
+            {name: "Starred"},
+            {name: "Spam", unread: 2},
+            {name: "Trash"},
         ],
     },
     {
         id: 2,
         email: "AuthorJohnSmith@gmail.com",
         folders: [
-            {name:"Inbox", unread: 1},
-            {name:"Drafts"},
-            {name:"Sent"},
-            {name:"Starred"},
-            {name:"Spam"},
-            {name:"Trash", unread: 3},
+            {name: "Inbox", unread: 1},
+            {name: "Drafts"},
+            {name: "Sent"},
+            {name: "Starred"},
+            {name: "Spam"},
+            {name: "Trash", unread: 3},
         ],
     },
     {
@@ -37,24 +37,24 @@ const accounts = [
         id: 4,
         email: "JohnSmith@gmail.com",
         folders: [
-            {name:"Inbox", unread: 3},
-            {name:"Drafts"},
-            {name:"Sent"},
-            {name:"Starred"},
-            {name:"Spam", unread: 2},
-            {name:"Trash"},
+            {name: "Inbox", unread: 3},
+            {name: "Drafts"},
+            {name: "Sent"},
+            {name: "Starred"},
+            {name: "Spam", unread: 2},
+            {name: "Trash"},
         ],
     },
     {
         id: 5,
         email: "JohnSmith@gmail.com",
         folders: [
-            {name:"Inbox", unread: 3},
-            {name:"Drafts"},
-            {name:"Sent"},
-            {name:"Starred"},
-            {name:"Spam", unread: 2},
-            {name:"Trash"},
+            {name: "Inbox", unread: 3},
+            {name: "Drafts"},
+            {name: "Sent"},
+            {name: "Starred"},
+            {name: "Spam", unread: 2},
+            {name: "Trash"},
         ],
     },
 ];
@@ -68,7 +68,7 @@ function Sidebar() {
     };
 
     const handleFolderClick = (accountId, folderName) => {
-        setActiveFolder({ accountId, folderName });
+        setActiveFolder({accountId, folderName});
     }
 
 
