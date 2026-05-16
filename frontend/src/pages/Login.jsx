@@ -5,7 +5,29 @@ import {useState} from "react";
 import Modial from "../components/ResetPasswordPopup.jsx"
 
 function Login() {
-    const [showModial, setShowModial] = useState(false)
+    const [showModal, setShowModal] = useState(false)
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
+
+    async function handleSubmit(e) {
+        e.preventDefault()
+
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        })
+
+        const data = await response.json()
+
+        console.log(data)
+    }
+
     return (
         <div className={"login-container"}>
             <div className={"login-card"}>
@@ -15,18 +37,26 @@ function Login() {
                     <div className={"title-line"}></div>
                 </div>
 
-                <form className={"login-form"}>
+                <form onSubmit={handleSubmit} className={"login-form"}>
 
                     <div className={"input-wrapper"}>
-                        <input type={"text"} placeholder={"Login"} className={"login-input"}/>
+                        <input value={username}
+                               type={"text"}
+                               placeholder={"Login"}
+                               className={"login-input"}
+                               onChange={(e) => setUsername(e.target.value)}/>
                         <div className={"password-wrapper"}>
-                            <input type={"password"} placeholder={"Password"} className={"login-input"}/>
+                            <input value={password}
+                                   type={"password"}
+                                   placeholder={"Password"}
+                                   className={"login-input"}
+                                   onChange={(e) => setPassword(e.target.value)}/>
 
-                            <button type={"button"} onClick={() => setShowModial(true)} className={"reset-btn"}>
+                            <button type={"button"} onClick={() => setShowModal(true)} className={"reset-btn"}>
                                 reset password »
                             </button>
                             {
-                                showModial && <Modial/>
+                                showModal && <Modial/>
                             }
                         </div>
                     </div>

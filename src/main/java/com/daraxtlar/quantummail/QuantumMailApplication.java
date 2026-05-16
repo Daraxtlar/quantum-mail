@@ -9,5 +9,4 @@ public class QuantumMailApplication {
     static void main(String[] args) {
         SpringApplication.run(QuantumMailApplication.class, args);
     }
-
 }
