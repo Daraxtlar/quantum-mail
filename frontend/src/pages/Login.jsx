@@ -3,33 +3,47 @@ import {Link} from 'react-router-dom';
 import "../styles/Login.css";
 import {useState} from "react";
 import Modial from "../components/ResetPasswordPopup.jsx"
+import { useNavigate } from "react-router-dom";
+import Alert from "../components/BadPasswordAlert.jsx";
 
 function Login() {
     const [showModal, setShowModal] = useState(false)
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
+    const navigate = useNavigate();
+    const [showAlert, setShowAlert] = useState(false)
 
     async function handleSubmit(e) {
         e.preventDefault()
 
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
+        const response = await fetch("http://localhost:8080/api/auth/login", {
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                username,
-                password
-            })
-        })
+            body: JSON.stringify({ username, password })
+        });
 
-        const data = await response.json()
+        if (response.ok) {
+            const data = await response.json();
 
-        console.log(data)
+            localStorage.setItem("user", JSON.stringify(data));
+
+            navigate("/inbox");
+        }
+        else{
+            setShowAlert(true);
+        }
     }
 
     return (
         <div className={"login-container"}>
+
+            <div className={"alert-holder"}>
+                {
+                    showAlert && <Alert />
+                }
+            </div>
             <div className={"login-card"}>
                 <div className={"login-header"}>
 

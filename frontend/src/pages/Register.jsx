@@ -6,10 +6,10 @@ import {useState} from "react";
 function Register() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
+    const [email, setEmail] = useState('')
 
     async function handleSubmit(e) {
         e.preventDefault()
-        console.log("handling!");
 
         const response = await fetch('/api/auth/register', {
             method: 'POST',
@@ -18,7 +18,8 @@ function Register() {
             },
             body: JSON.stringify({
                 username,
-                password
+                password,
+                email
             })
         })
 
@@ -49,6 +50,12 @@ function Register() {
                 <form onSubmit={handleSubmit} className={"login-form"}>
 
                     <div className={"input-wrapper"}>
+                        <input
+                            value={email}
+                            type={"text"}
+                            placeholder={"Email"}
+                            className={"login-input"}
+                            onChange={(e) => setEmail(e.target.value)}/>
                         <input
                             value={username}
                             type={"text"}

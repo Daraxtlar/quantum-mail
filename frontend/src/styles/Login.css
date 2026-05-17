@@ -3,6 +3,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: clamp(11px, 2vw, 13px);
     width: 100%;
+    position: fixed;
 }
 
 .login-container {

@@ -1,6 +1,7 @@
 package com.daraxtlar.quantummail.controller;
 
 import com.daraxtlar.quantummail.model.LoginRequest;
+import com.daraxtlar.quantummail.model.RegisterRequest;
 import com.daraxtlar.quantummail.repository.UserRepository;
 import com.daraxtlar.quantummail.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -21,22 +22,11 @@ public class ApiController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request){
-
-        System.out.println(request.getUsername());
-        System.out.println(request.getPassword());
-
-        return ResponseEntity.ok(
-                Map.of("message", "login successful")
-        );
+        return userService.loginUser(request.getUsername(), request.getPassword());
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody LoginRequest request){
-
-        userService.createUser(request.getUsername(), request.getPassword());
-
-        return ResponseEntity.ok(
-                Map.of("message", "register successful")
-        );
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request){
+        return userService.createUser(request.getUsername(), request.getPassword(), request.getEmail());
     }
 }
