@@ -1,17 +1,17 @@
-import {FileText, Mail, Send, ShieldAlert, Star, Trash2,} from "lucide-react";
+import {FilePen, Mails, SendHorizontal, MessageSquareOff, Star, Trash2,} from "lucide-react";
 import "../styles/Sidebar.css";
 
 const icons = {
-    Inbox: Mail,
-    Drafts: FileText,
-    Sent: Send,
+    Inbox: Mails,
+    Drafts: FilePen,
+    Sent: SendHorizontal,
     Starred: Star,
-    Spam: ShieldAlert,
+    Spam: MessageSquareOff,
     Trash: Trash2,
 };
 
 function SidebarItem({item, onClick}) {
-    const Icon = icons[item.name] || Mail;
+    const Icon = icons[item.name] || Mails;
 
     return (
         <button className={`sidebar-item ${item.active ? "active" : ""}`} onClick={onClick}>
