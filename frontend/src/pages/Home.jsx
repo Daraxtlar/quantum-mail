@@ -1,9 +1,9 @@
-import Login from "../pages/Login.jsx"
+import Settings from "../pages/Settings.jsx"
 
 
 function Home() {
     return (
-        <Login/>
+        <Settings/>
     )
 }
 
