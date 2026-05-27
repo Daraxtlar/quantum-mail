@@ -35,7 +35,7 @@ function MailDetail({mail, onBack, onReply}) {
                     </div>
                     <div className={"sender-details"}>
                         <div className={"sender-name"}>{mail.sender}</div>
-                        <div className={"sender-email"}>{mail.email || "unkown@email.com"}</div>
+                        <div className={"sender-email"}>{mail.email || "unknown@email.com"}</div>
                     </div>
                     <div className={"detail-date"}>{mail.date}</div>
                 </div>
@@ -47,7 +47,7 @@ function MailDetail({mail, onBack, onReply}) {
                 </div>
 
                 {mail.attachments && mail.attachments.length > 0 && (
-                    <div className={"detail-attachments-section"}>
+                    <div className={"attachments-section"}>
                         <h3 className={"attachments-title"}>
                             <Paperclip size={16} />
                             Attachments ({mail.attachments.length})
