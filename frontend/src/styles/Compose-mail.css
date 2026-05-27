@@ -1,0 +1,290 @@
+.compose-overlay{
+    position: fixed;
+    bottom: 0;
+    right: 40px;
+    z-index: 1000;
+}
+
+.compose-window{
+    width: 560px;
+    max-height: 80vh;
+    background: #0d0d1a;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    animation: composeSlideUp 0.25 ease;
+}
+
+@keyframes composeSlideUp {
+    from{
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to{
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.compose-window.fullscreen{
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80vw;
+    max-width: 900px;
+    height: 80vh;
+    border-radius: 12px;
+}
+
+.compose-minimized{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0d0d1a;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-size: 14px;
+    width: 260px;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
+    position: fixed;
+    bottom: 0;
+    right: 40px;
+    z-index: 1000;
+}
+
+.minimized-actions{
+    display: flex;
+    gap: 4px;
+}
+
+.minimized-actions button{
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+}
+
+.minimized-actions button:hover{
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.compose-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #1a1a2e;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+
+.compose-title{
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+}
+
+.compose-header-actions{
+    display: flex;
+    gap: 4px;
+}
+
+.compose-header-btn{
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    transition: all 0.2s;
+}
+
+.compose-header-btn:hover{
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.compose-body{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.compose-field{
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.compose-label{
+    width: 65px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+}
+
+.compose-input{
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+.compose-input::placeholder{
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.compose-field-body{
+    flex: 1;
+    padding: 12px 16px;
+}
+
+.compose-textarea{
+    width: 100%;
+    min-height: 200px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+}
+
+.compose-textarea::placeholder{
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.attachments-preview{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.attachment-tag{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(21, 64, 255, 0.2);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.attachment-tag button{
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+}
+
+.attachment-tag button:hover{
+    color: #ff4444;
+}
+
+.compose-footer{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+
+.send-btn{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1540ff;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.send-btn:hover{
+    background: #2a54ff;
+}
+
+.send-btn:disabled{
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.attach-btn{
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    display: flex;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.attach-btn:hover{
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.discard-btn{
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    display: flex;
+    transition: all 0.2s;
+    margin-left: auto;
+}
+
+.discard-btn:hover{
+    background: rgba(255, 255, 255, 0.1);
+    color: #ff4444;
+}
+
+@media (max-width: 600px) {
+    .compose-window{
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .compose-overlay{
+        right: 0;
+        left: 0;
+        bottom: 0;
+    }
+
+    .compose-window.fullscreen{
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+    }
+
+}
+

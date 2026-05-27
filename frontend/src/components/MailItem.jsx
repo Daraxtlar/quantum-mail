@@ -1,12 +1,12 @@
 import "../styles/Mail-list.css"
 
 
-function MailItem({ mail, isSelected, onToggle}) {
+function MailItem({ mail, isSelected, onToggle, onClick}) {
     return(
-        <div className={`mail-item ${mail.active ? "active" : ""}`}>
+        <div className={`mail-item ${mail.active ? "active" : ""}`} onClick={onClick}>
             <div className={"mail-status"} style={{backgroundColor: mail.color || "transparent"}}></div>
 
-            <div className={"mail-checkbox"}>
+            <div className={"mail-checkbox"} onClick={(e) => e.stopPropagation()}>
                 <input
                     type="checkbox"
                     checked={isSelected}

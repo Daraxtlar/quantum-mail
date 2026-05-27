@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import {useEffect, useState} from "react";
 
-function Topbar(){
+function Topbar({onCompose}){
     const [username, setUsername] = useState("")
 
     //TODO: Fetch username from backend and set it to state
@@ -23,7 +23,7 @@ function Topbar(){
             </div>
 
             <div className={"topbar-center"}>
-                <button className={"topbar-icon-button"}>
+                <button className={"topbar-icon-button"} onClick={onCompose}>
                     <SquarePen size={20} />
                 </button>
 
