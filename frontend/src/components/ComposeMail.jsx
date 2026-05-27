@@ -163,30 +163,51 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!to.trim()) {
             alert("Recipient email is required.");
             return;
         }
 
-        const mailData = {
-            senders: userEmail || "user@quantummail.com",
-            recipients: to.split(",").map(email => email.trim()).filter(Boolean),
-            subject: subject,
-            text: body,
-            method: "send",
-            files: files,
-        };
+        setSending(true);
 
-        if (onSend) {
-            onSend(mailData);
+        const formData = new FormData();
+        //userEmail || "user@quantummail.com"
+        formData.append('senders', 'lukasz78899@op.pl');
+
+        const recipients = to.split(",").map(email => email.trim()).filter(Boolean);
+        recipients.forEach(recipient => formData.append('recipients', recipient));
+
+        formData.append('subject', subject);
+        formData.append('text', body);
+        formData.append('method', 'send');
+
+        if (files.length > 0){
+            files.forEach(file => formData.append('files', file));
         }
 
-        setTo("");
-        setSubject("");
-        setBody("");
-        setFiles([]);
-        onClose?.();
+        try{
+            const response = await fetch('/api/mails/send', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok){
+                setTo("");
+                setSubject("");
+                setBody("");
+                setFiles([]);
+                onClose?.();
+            }else {
+                //TODO JAKIS LEPSZY ALERT
+                alert("Failed to send email")
+            }
+        }catch (error) {
+            console.log("Error sending email:", error);
+             alert("Error sending email");
+        } finally {
+            setSending(false);
+        }
     };
 
     if (isMinimized) {
