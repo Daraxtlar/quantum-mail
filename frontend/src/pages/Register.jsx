@@ -1,5 +1,5 @@
 import "react";
-import {Link} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import "../styles/Login.css";
 import {useState} from "react";
 
@@ -7,6 +7,7 @@ function Register() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [email, setEmail] = useState('')
+    const navigate = useNavigate();
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -23,8 +24,15 @@ function Register() {
             })
         })
 
-        const data = await response.json()
+        if (response.ok){
+            navigate("/login");
+        }else {
+            //TODO Jakiś error normalny do wyświetlenia
+            const errorData = await response.json();
+            console.log("Błąd rejestracji:", errorData);
+        }
 
+        const data = await response.json()
         console.log(data)
     }
 

@@ -1,0 +1,94 @@
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: clamp(11px, 2vw, 13px);
+}
+
+.main-container {
+    min-height: 100vh;
+    width: 100%;
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0a0f4d, #22255e, #3a3a4d);
+}
+
+.settings-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    width: 300px;
+    height: 50px;
+    font-size: 20px;
+    color: white;
+    cursor: pointer;
+}
+
+.options-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+}
+
+
+.setting {
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    height: 50px;
+    font-size: 16px;
+    color: white;
+    cursor: pointer;
+}
+
+.option i {
+    display: block;
+    padding: 10px;
+}
+
+.title-settings {
+    width: 250px;
+    text-transform: capitalize;
+}
+
+.title-settings h1 {
+    font-size: 40px;
+}
+
+.back-button {
+    cursor: pointer;
+}
+
+.icon-left-small {
+    color: white;
+    font-size: 40px;
+}
+
+.search-box {
+    color: white;
+    background-color: #1c0c4f;
+    border-radius: 20px;
+    font-size: 18px;
+    max-width: 200px;
+    padding: 5px 10px;
+}
+
+.search-box input {
+    outline: none;
+    font-size: 18px;
+    max-width: 150px;
+    background-color: transparent;
+    border: 0 transparent solid;
+}
