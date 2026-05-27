@@ -32,4 +32,6 @@ public class ApiController {
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request){
         return userService.createUser(request);
     }
+
+
 }
