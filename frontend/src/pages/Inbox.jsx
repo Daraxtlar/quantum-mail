@@ -156,16 +156,16 @@ const allMails = {
 
 
 //Test Paginacji
-const testMails = Array.from({ length: 200 }, (_, i) => ({
+const testMails = Array.from({ length: 300 }, (_, i) => ({
     id: i + 1,
     sender: [
-        "Laura Shea", "Jonathan Brett", "Conrad Irvin", "Vivek Kumar",
+        "Laura Shea", "Jonathan Brett", "Conrad Irvin", "Vivek Kumarsafafadfafdafdafdafdafdafdafdafafa",
         "Rahul Vohra", "Sarah Connor", "Mike Johnson", "Emma Wilson",
         "Alex Turner", "Maria Garcia"
     ][i % 10],
     email: `user${i + 1}@example.com`,
     subject: [
-        "Closing the deal",
+        "Closing the dealaaaaaddsafangisghusivgbsuivbgsiuvbgusivbsuivgsiuvgbsivgbsiuvgbsiuvgbsuivgsiuvsiuvuisgbvisgvisuvguis",
         "Start screen & next step",
         "RE: Project update",
         "Meeting tomorrow",
@@ -189,6 +189,8 @@ function Inbox() {
     const [selectedMail, setSelectedMail] = useState(null);
     const [showCompose, setShowCompose] = useState(false);
     const [replyMail, setReplyMail] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const getCurrentMails = () => {
         if (!currentAccount || !currentFolder) return [];
@@ -201,6 +203,7 @@ function Inbox() {
     };
 
     const handleFolderClick = (accountId, folderName) => {
+        setCurrentPage(1);
         setSelectedMail(null);
         if (accountId && folderName){
             const account = accounts.find(acc => acc.id === accountId);
@@ -242,7 +245,7 @@ function Inbox() {
 
     return (
         <div className={"inbox"}>
-            <Topbar onCompose={openCompose} />
+            <Topbar onCompose={openCompose} onSearch={setSearchQuery}/>
             <div className={"layout"}>
                 <Sidebar
                     accounts={accounts}
@@ -256,8 +259,11 @@ function Inbox() {
                 ) : (
                     <MailList
                         mails = {currentMails}
+                        searchQuery={searchQuery}
                         path= {path}
                         onMailClick={(mail) => setSelectedMail(mail)}
+                        currentPage={currentPage}
+                        onPageChange={setCurrentPage}
                     />
                 )}
             </div>

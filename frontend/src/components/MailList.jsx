@@ -4,24 +4,38 @@ import {Archive, Funnel, MoveRight, Trash2, Star, ChevronRight, ChevronLeft} fro
 import {useEffect, useState} from "react";
 
 
-function MailList({mails = [], path = "", onMailClick}) {
+function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPage, onPageChange}) {
     const [selectedMails, setSelectedMails] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
     const mailsPerPage = 20;
+
+
+    const filteredMails = searchQuery.trim()
+        ? mails.filter(mail =>
+            mail.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            mail.sender?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            mail.body?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            mail.preview?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : mails;
 
     useEffect(() => {
         setSelectedMails([]);
-        setCurrentPage(1);
     }, [mails]);
 
-    const totalPages = Math.ceil(mails.length / mailsPerPage);
+    const totalPages = Math.ceil(filteredMails.length / mailsPerPage);
     const startIndex = (currentPage - 1) * mailsPerPage;
     const endIndex = startIndex + mailsPerPage;
-    const currentMails = mails.slice(startIndex, endIndex);
-    const showingFrom = mails.length > 0 ? startIndex + 1 : 0;
-    const showingTo = Math.min(endIndex, mails.length);
+    const currentMails = filteredMails.slice(startIndex, endIndex);
+    const showingFrom = filteredMails.length > 0 ? startIndex + 1 : 0;
+    const showingTo = Math.min(endIndex, filteredMails.length);
 
     const allCurrentSelected = currentMails.length > 0 && currentMails.every(m => selectedMails.includes(m.id));
+
+
+    useEffect(() => {
+        onPageChange?.(1);
+    }, [searchQuery]);
+
 
     const handleSelectAll = () => {
         if (allCurrentSelected) {
@@ -60,7 +74,7 @@ function MailList({mails = [], path = "", onMailClick}) {
     };
 
     const goToPage = (page) => {
-        setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+        onPageChange?.(page);
     }
 
 
@@ -108,7 +122,7 @@ function MailList({mails = [], path = "", onMailClick}) {
             <div className={"mail-list"}>
                 {currentMails.length === 0 ? (
                     <div className={"empty-state"}>
-                        <p>No messages in this folder</p>
+                        <p>{searchQuery ? "No results found" : "No messages in this folder"}</p>
                     </div>
                 ) : (
                     currentMails.map(mail => (
@@ -123,10 +137,10 @@ function MailList({mails = [], path = "", onMailClick}) {
                 )}
             </div>
 
-            {mails.length > mailsPerPage && (
+            {filteredMails.length > mailsPerPage && (
                 <div className={"mail-pagination"}>
                     <span className={"pagination-info"}>
-                        {showingFrom}–{showingTo} of {mails.length}
+                        {showingFrom}–{showingTo} of {filteredMails.length}
                     </span>
 
                     <div className={"pagination-buttons"}>

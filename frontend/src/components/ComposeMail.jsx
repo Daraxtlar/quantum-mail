@@ -1,6 +1,6 @@
 import "../styles/Compose-mail.css";
 import {X, Paperclip, Send, Trash2, Minus, Maximize2} from "lucide-react";
-import {useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
 function ComposeMail({onClose, onSend, userEmail, replyTo}) {
     const [to, setTo] = useState(
@@ -22,10 +22,137 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
             ? `\n\n---------- Forwarded message ----------\nFrom: ${replyTo.sender} <${replyTo.email}>\nDate: ${replyTo.date}\nSubject: ${replyTo.subject}\n\n${replyTo.body}`
             : ""
     );
+
+    useEffect(() => {
+        setTo(
+            replyTo
+                ? replyTo._type === "reply"
+                    ? replyTo.email
+                    : ""
+                : ""
+        );
+        setSubject(
+            replyTo
+                ? replyTo._type === "forward"
+                    ? `Fwd: ${replyTo.subject}`
+                    : `Re: ${replyTo.subject}`
+                : ""
+        );
+        setBody(
+            replyTo && replyTo._type === "forward"
+                ? `\n\n---------- Forwarded message ----------\nFrom: ${replyTo.sender} <${replyTo.email}>\nDate: ${replyTo.date}\nSubject: ${replyTo.subject}\n\n${replyTo.body}`
+                : ""
+        );
+        setFiles([]);
+    }, [replyTo]);
+
+    const getTitle = (isMinimized = false) => {
+        const maxLength = isMinimized ? 30 : Math.floor((size.width || 560) / 12);
+
+        let title = "New Message";
+        if (replyTo) {
+            if (replyTo._type === "reply") {
+                title = `Reply to ${replyTo.sender}`;
+            } else if (replyTo._type === "forward") {
+                title = `Forward: ${replyTo.subject}`;
+            }
+        }
+
+        return title.length > maxLength ? title.substring(0, maxLength - 3) + "..." : title;
+    } ;
+
     const [files, setFiles] = useState([]);
-    const [isMinimized, setIsMinimized] = useState(false);
-    const [isMaximized, setIsMaximized] = useState(false);
     const [sending, setSending] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [isDetached, setIsDetached] = useState(false);
+
+    const [position, setPosition] = useState({x:0, y:0});
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStart = useRef({x: 0, y: 0});
+
+    const [size, setSize] =  useState({width: 560, height:"auto"});
+    const [isResizing, setIsResizing] = useState(false);
+    const resizeStart = useRef({x: 0, y: 0, width: 0, height: 0});
+    const windowRef = useRef(null);
+
+    const handleMouseDown = (e) => {
+        if (e.target.closest('.compose-header-actions')) return;
+        setIsDragging(true);
+        dragStart.current = {
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
+        };
+    };
+
+    const handleMouseMove = useCallback((e) => {
+        if (isDragging){
+            setPosition({
+                x: Math.max(0, Math.min(e.clientX - dragStart.current.x, window.innerWidth - (size.width || 560))),
+                y: Math.max(0, Math.min(e.clientY - dragStart.current.y, window.innerHeight - 60))
+            });
+        }
+
+        if (isResizing && windowRef.current){
+            const dx = e.clientX - resizeStart.current.x;
+            const dy = e.clientY - resizeStart.current.y;
+
+            let newWidth = resizeStart.current.width;
+            let newHeight = resizeStart.current.height;
+
+            if (resizeStart.current.direction === 'right' || resizeStart.current.direction === 'corner'){
+                newWidth = Math.max(400, Math.min(resizeStart.current.width + dx, window.innerWidth - position.x));
+            }
+            if (resizeStart.current.direction === 'bottom' || resizeStart.current.direction === 'corner'){
+                newHeight = Math.max(300, Math.min(resizeStart.current.height + dy, window.innerHeight - position.y));
+            }
+            setSize({width: newWidth, height: newHeight});
+        }
+    }, [isDragging, isResizing, position.x, position.y, size.width]);
+
+    const handleMouseUp = useCallback(() => {
+        setIsDragging(false);
+        setIsResizing(false);
+    }, []);
+
+    useEffect(() => {
+        if (isDragging || isResizing){
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            document.body.style.userSelect = 'none';
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.userSelect = '';
+        };
+    }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+
+    const handleResizeStart = (e, direction) => {
+        e.stopPropagation();
+        setIsResizing(true);
+        const rect = windowRef.current.getBoundingClientRect();
+        resizeStart.current = {
+            x: e.clientX,
+            y: e.clientY,
+            width: rect.width,
+            height: rect.height,
+            direction: direction
+        };
+    };
+
+    const handleDetach = () => {
+        setIsDetached(!isDetached);
+        if (!isDetached){
+            setPosition({
+                x: window.innerWidth / 2 - 400,
+                y: window.innerHeight / 2 - 300
+            });
+            setSize({width: 800, height: 600});
+        } else {
+            setPosition({x: 0, y: 0});
+            setSize({width: 560, height: "auto"});
+        }
+    };
 
     const handleFileSelect = (e) => {
         const selectedFiles = Array.from(e.target.files);
@@ -65,7 +192,7 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
     if (isMinimized) {
         return (
             <div className={"compose-minimized"} onClick={() => setIsMinimized(false)}>
-                <span>New Message</span>
+                <span>{getTitle(true)}</span>
                 <div className={"minimized-actions"}>
                     <button onClick={(e) => {
                         e.stopPropagation();
@@ -84,16 +211,26 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
         );
     }
 
+    const windowStyle = isDetached ? {
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
+        width: size.width,
+        height: size.height,
+        borderRadius: 12,
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+    } : {};
+
     return (
         <div className={"compose-overlay"}>
-            <div className={`compose-window ${isMaximized ? "fullscreen" : ""}`}>
-                <div className={"compose-header"}>
-                    <span className={"compose-title"}>New Message</span>
+            <div ref={windowRef} className={`compose-window ${isDetached ? "detached" : ""}`} style={windowStyle}>
+                <div className={`compose-header ${isDetached ? "draggable" : ""}`} onMouseDown={isDetached ? handleMouseDown : undefined}>
+                    <span className={"compose-title"}>{getTitle()}</span>
                     <div className={"compose-header-actions"}>
                         <button className={"compose-header-btn"} onClick={() => setIsMinimized(true)}>
                             <Minus size={16}/>
                         </button>
-                        <button className={"compose-header-btn"} onClick={() => setIsMaximized(!isMaximized)}>
+                        <button className={"compose-header-btn"} onClick={handleDetach}>
                             <Maximize2 size={16}/>
                         </button>
                         <button className={"compose-header-btn"} onClick={onClose}>
@@ -173,6 +310,14 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
                         <Trash2 size={16}/>
                     </button>
                 </div>
+
+                {isDetached && (
+                    <>
+                        <div className={"resize-handle right"} onMouseDown={(e) => handleResizeStart(e, 'right')} />
+                        <div className={"resize-handle bottom"} onMouseDown={(e) => handleResizeStart(e, 'bottom')} />
+                        <div className={"resize-handle corner"} onMouseDown={(e) => handleResizeStart(e, 'corner')} />
+                    </>
+                )}
             </div>
         </div>
     );

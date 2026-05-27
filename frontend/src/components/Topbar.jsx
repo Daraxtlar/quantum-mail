@@ -8,8 +8,8 @@ import {
 } from "lucide-react";
 import {useEffect, useState} from "react";
 
-function Topbar({onCompose}){
-    const [username, setUsername] = useState("")
+function Topbar({onCompose, onSearch}){
+    const [username, setUsername] = useState("");
 
     //TODO: Fetch username from backend and set it to state
     useEffect(() => {
@@ -37,7 +37,12 @@ function Topbar({onCompose}){
 
                 <div className={"search-wrapper"}>
                     <Search size={16} className={"search-icon"} />
-                    <input type={"text"} placeholder={"Search"} className={"search-input"} />
+                    <input
+                        type={"text"}
+                        placeholder={"Search"}
+                        className={"search-input"}
+                        onChange={(e) => onSearch?.(e.target.value)}
+                    />
                 </div>
             </div>
 
