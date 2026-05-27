@@ -21,15 +21,15 @@ function MailList({mails = [], path = "", onMailClick}) {
     const showingFrom = mails.length > 0 ? startIndex + 1 : 0;
     const showingTo = Math.min(endIndex, mails.length);
 
-    const allSelected = mails.length > 0 && selectedMails.length === mails.length;
+    const allCurrentSelected = currentMails.length > 0 && currentMails.every(m => selectedMails.includes(m.id));
 
     const handleSelectAll = () => {
-        if (allSelected) {
+        if (allCurrentSelected) {
             setSelectedMails(prev => prev.filter(id => !currentMails.find(m => m.id === id)));
         } else {
             setSelectedMails(prev => [
-                ...prev,
-                ...currentMails.map(m => m.id).filter(id => !prev.includes(id))
+                ...prev.filter(id => !currentMails.find(m => m.id === id)),
+                ...currentMails.map(m => m.id)
             ]);
         }
     };
@@ -69,7 +69,7 @@ function MailList({mails = [], path = "", onMailClick}) {
             <div className={"mail-toolbar"}>
                 <div className={"toolbar-left"}>
                     {currentMails.length > 0 && (
-                        <input type={"checkbox"} checked={allSelected} onChange={handleSelectAll}/>
+                        <input type={"checkbox"} checked={allCurrentSelected} onChange={handleSelectAll}/>
                     )}
 
                     {selectedMails.length > 0 && (
@@ -123,7 +123,6 @@ function MailList({mails = [], path = "", onMailClick}) {
                 )}
             </div>
 
-            {/* Paginacja na dole */}
             {mails.length > mailsPerPage && (
                 <div className={"mail-pagination"}>
                     <span className={"pagination-info"}>
@@ -139,10 +138,8 @@ function MailList({mails = [], path = "", onMailClick}) {
                             <ChevronLeft size={16} />
                         </button>
 
-                        {/* Numery stron */}
                         {Array.from({ length: totalPages }, (_, i) => i + 1)
                             .filter(page => {
-                                // Pokaż pierwszą, ostatnią i okolice aktualnej
                                 return page === 1 ||
                                     page === totalPages ||
                                     Math.abs(page - currentPage) <= 1;

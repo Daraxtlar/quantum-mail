@@ -192,7 +192,7 @@ function Inbox() {
 
     const getCurrentMails = () => {
         if (!currentAccount || !currentFolder) return [];
-        return allMails[currentAccount]?.[currentFolder] || [];
+        return testMails
         //NORMALNE WYŚWIETLANIE
         //allMails[currentAccount]?.[currentFolder] || []
         //DLA TESTU PAGINACJI
