@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name="\"user\"")
+@Table(name="\"user\"", schema = "qmail")
 @Getter
 @Setter
 public class User {

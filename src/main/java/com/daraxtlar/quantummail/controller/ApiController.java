@@ -1,5 +1,6 @@
 package com.daraxtlar.quantummail.controller;
 
+import com.daraxtlar.quantummail.model.AuthResponse;
 import com.daraxtlar.quantummail.model.LoginRequest;
 import com.daraxtlar.quantummail.model.RegisterRequest;
 import com.daraxtlar.quantummail.repository.UserRepository;
@@ -9,8 +10,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:5173")
 public class ApiController {
 
 
@@ -21,12 +24,12 @@ public class ApiController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request){
-        return userService.loginUser(request.getUsername(), request.getPassword());
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request){
+        return userService.loginUser(request);
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request){
-        return userService.createUser(request.getUsername(), request.getPassword(), request.getEmail());
+    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request){
+        return userService.createUser(request);
     }
 }
