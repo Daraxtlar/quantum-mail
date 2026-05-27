@@ -2,9 +2,10 @@ import Topbar from "../components/Topbar.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import MailList from "../components/MailList.jsx";
 import "../styles/Inbox.css"
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import MailDetail from "../components/MailDetail.jsx";
 import ComposeMail from "../components/ComposeMail.jsx";
+import {mailService} from "../services/MailService.js";
 
 
 //Test Konta i Foldery
@@ -191,18 +192,65 @@ function Inbox() {
     const [replyMail, setReplyMail] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
+    const [mails, setMails] = useState(testMails);
+    const [loading, setLoading] = useState(false);
 
+    /*
     const getCurrentMails = () => {
         if (!currentAccount || !currentFolder) return [];
-        return testMails
+        return allMails[currentAccount]?.[currentFolder] || []
         //NORMALNE WYŚWIETLANIE
         //allMails[currentAccount]?.[currentFolder] || []
         //DLA TESTU PAGINACJI
         // return testMails
+    };
+     */
 
+    useEffect(() => {
+        loadEmails();
+    }, []);
+
+    const loadEmails = async () => {
+        setLoading(true);
+        try{
+            const emails = await mailService.fetchEmails();
+            const formattedMails = emails.map(email => ({
+                id: email.id,
+                sender: email.from || "Unknown",
+                email: email.from || "",
+                subject: email.subject || "(no subject)",
+                preview: (email.content || "").substring(0, 100) + "...",
+                body: email.content || "",
+                date: formatDate(email.sentDate),
+                read: email.read || false,
+                attachments: email.attachments || [],
+                color: !email.read ? "#7CFF5B" : undefined,
+            }));
+            setMails(formattedMails);
+        }catch (error){
+            console.error("Error fetching emails:", error);
+        }finally {
+            setLoading(false);
+        }
     };
 
+    const formatDate = (date) => {
+        if (!date) return "";
+        const d = new Date(date);
+        const now = new Date();
+        const diffMs = now - d;
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        if (days === 0) return "Today";
+        if (days === 1) return "Yesterday";
+        if (days < 7) return `${days} ago`;
+        return d.toLocaleDateString();
+    }
+
+    const getCurrentMails = () => mails;
+
+
     const handleFolderClick = (accountId, folderName) => {
+        console.log("🟡 handleFolderClick - setting page to 1");
         setCurrentPage(1);
         setSelectedMail(null);
         if (accountId && folderName){
@@ -214,9 +262,7 @@ function Inbox() {
         }
     };
 
-    const handleSendMail = (mailData) => {
-        console.log("Wysyłanie", mailData);
-        //TODO: Implement sending mail
+    const handleSendMail = () => {
         closeCompose();
     };
 
@@ -270,7 +316,7 @@ function Inbox() {
 
             {showCompose && (
                 <ComposeMail
-                    onClose={() => setShowCompose(false)}
+                    onClose={closeCompose}
                     onSend={handleSendMail}
                     userEmail={currentAccount || "user@quantummail.com"}
                     replyTo={replyMail}

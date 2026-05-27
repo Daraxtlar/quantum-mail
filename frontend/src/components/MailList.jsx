@@ -22,6 +22,7 @@ function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPag
         setSelectedMails([]);
     }, [mails]);
 
+
     const totalPages = Math.ceil(filteredMails.length / mailsPerPage);
     const startIndex = (currentPage - 1) * mailsPerPage;
     const endIndex = startIndex + mailsPerPage;
@@ -33,7 +34,9 @@ function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPag
 
 
     useEffect(() => {
-        onPageChange?.(1);
+        if (searchQuery && searchQuery.trim()){
+            onPageChange?.(1);
+        }
     }, [searchQuery]);
 
 

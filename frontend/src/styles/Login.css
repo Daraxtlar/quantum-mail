@@ -13,6 +13,7 @@ body {
     justify-content: center;
     background: linear-gradient(135deg, #0a0f4d, #22255e, #3a3a4d);
     padding: 20px;
+    width: 100vw;
 }
 
 .login-card {
