@@ -44,10 +44,8 @@ function MailDetail({mail, onBack, onReply}) {
         if (iframe && iframe.contentWindow) {
             iframe.style.height = "100px";
 
-            setTimeout(() => {
-                const height = iframe.contentWindow.document.documentElement.scrollHeight;
-                iframe.style.height = height + "px";
-            }, 50);
+            const height = iframe.contentWindow.document.documentElement.scrollHeight;
+            iframe.style.height = height + "px";
         }
     };
 

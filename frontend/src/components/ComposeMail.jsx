@@ -119,11 +119,13 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
             document.body.style.userSelect = 'none';
+            document.body.style.pointerEvents = 'none';
         }
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
             document.body.style.userSelect = '';
+            document.body.style.pointerEvents = 'auto';
         };
     }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
