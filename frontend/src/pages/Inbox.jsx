@@ -192,7 +192,7 @@ function Inbox() {
     const [replyMail, setReplyMail] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
-    const [mails, setMails] = useState(testMails);
+    const [mails, setMails] = useState([]);
     const [loading, setLoading] = useState(false);
 
     /*
@@ -219,7 +219,7 @@ function Inbox() {
                 sender: email.from || "Unknown",
                 email: email.from || "",
                 subject: email.subject || "(no subject)",
-                preview: (email.content || "").substring(0, 100) + "...",
+                preview: email.snippet || "",
                 body: email.content || "",
                 date: formatDate(email.sentDate),
                 read: email.read || false,
@@ -248,9 +248,28 @@ function Inbox() {
 
     const getCurrentMails = () => mails;
 
+    const handleMailClick = async (mail) => {
+        setLoading(true);
+        try{
+            const fullMail = await mailService.fetchEmailDetails(mail.id);
+
+            const formattedDetail = {
+                ...fullMail,
+                sender: fullMail.from,
+                content: fullMail.content,
+                date: formatDate(fullMail.sentDate),
+                color: mail.color
+            };
+            setSelectedMail(formattedDetail);
+        }catch (error){
+            console.error("Error fetching email details:", error);
+            alert("Failed to load email details. Please try again.");
+        }finally {
+            setLoading(false);
+        }
+    };
 
     const handleFolderClick = (accountId, folderName) => {
-        console.log("🟡 handleFolderClick - setting page to 1");
         setCurrentPage(1);
         setSelectedMail(null);
         if (accountId && folderName){
@@ -307,7 +326,7 @@ function Inbox() {
                         mails = {currentMails}
                         searchQuery={searchQuery}
                         path= {path}
-                        onMailClick={(mail) => setSelectedMail(mail)}
+                        onMailClick={handleMailClick}
                         currentPage={currentPage}
                         onPageChange={setCurrentPage}
                     />
