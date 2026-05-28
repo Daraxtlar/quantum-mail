@@ -181,3 +181,25 @@
     color: white;
     background: rgba(255, 255, 255, 0.1);
 }
+
+.mail-content-raw{
+    all: revert;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    color: #333;
+    background: #fff;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.mail-content-raw img{
+    max-width: 100%;
+    height: auto;
+}
+
+.mail-content-raw table{
+    max-width: 100%;
+    width: 100%;
+    border-collapse: collapse;
+}

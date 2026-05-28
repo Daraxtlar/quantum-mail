@@ -3,6 +3,9 @@ package com.daraxtlar.quantummail.controller;
 import com.daraxtlar.quantummail.model.EmailMessage;
 import com.daraxtlar.quantummail.service.MailService;
 import com.daraxtlar.quantummail.service.SendEmailService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,4 +54,38 @@ public class MailController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{uid}/attachments/{filename}")
+    public ResponseEntity<byte[]> downloadFile(@PathVariable long uid, @PathVariable String filename, @RequestParam(required = false, defaultValue = "false") boolean download) {
+        byte[] data = mailService.downloadAttachment(uid, filename);
+
+        if (data == null) return ResponseEntity.notFound().build();
+
+        String disposition = download ? "attachment" : "inline";
+
+        MediaType mediaType = MediaTypeFactory.getMediaType(filename).orElse(MediaType.APPLICATION_OCTET_STREAM);
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition +"; filename=\"" + filename + "\"")
+                .body(data);
+    }
+
+    @GetMapping("/{uid}")
+    public ResponseEntity<EmailMessage> getEmailDetails(@PathVariable long uid) {
+        EmailMessage email = mailService.getEmailMessage(uid);
+
+        if (email != null) {
+            return ResponseEntity.ok(email);
+        }else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<Map<String, String>> refresh() {
+        mailService.clearCache();
+        return ResponseEntity.ok(Map.of("status", "Cache cleared"));
+    }
+
 }

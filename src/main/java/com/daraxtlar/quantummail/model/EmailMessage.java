@@ -14,10 +14,11 @@ public class EmailMessage {
     private String to;
     private String subject;
     private String content;
+    private String snippet;
     private Date sentDate;
     private boolean read;
     private boolean hasAttachments;
-    private List<String> attachments;
+    private List<Attachment> attachments;
 
     public EmailMessage() {}
 }
