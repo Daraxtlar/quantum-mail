@@ -9,8 +9,6 @@ import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,22 +42,32 @@ public class MailController {
     }
 
     @GetMapping("/fetch")
-    public ResponseEntity<Map<String, Object>> fetchEmails() {
-        List<EmailMessage> emails = mailService.fetchEmails();
+    public ResponseEntity<?> fetchEmails(
+            @RequestParam(defaultValue = "INBOX") String folder,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size){
+        List<EmailMessage> emails = mailService.fetchEmails(folder, page, size);
+        int totalCount = mailService.getFolderMessageCount(folder);
+        int totalPages = (int) Math.ceil((double) totalCount / (double) size);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("count", emails.size());
-        response.put("emails", emails);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of(
+                "emails", emails,
+                "totalCount", totalCount,
+                "totalPages", totalPages,
+                "currentPage", page,
+                "folder", folder
+                ));
     }
 
-    @GetMapping("/{uid}/attachments/{filename}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable long uid, @PathVariable String filename, @RequestParam(required = false, defaultValue = "false") boolean download) {
-        byte[] data = mailService.downloadAttachment(uid, filename);
+    @GetMapping("/{folder}/{uid}/attachments/{filename:.+}")
+    public ResponseEntity<byte[]> downloadFile(
+            @PathVariable String folder,
+            @PathVariable long uid,
+            @PathVariable String filename,
+            @RequestParam(required = false, defaultValue = "false") boolean download) {
+        byte[] data = mailService.downloadAttachment(folder, uid, filename);
 
-        if (data == null) return ResponseEntity.notFound().build();
+        if (data == null) return ResponseEntity.noContent().build();
 
         String disposition = download ? "attachment" : "inline";
 
@@ -71,21 +79,17 @@ public class MailController {
                 .body(data);
     }
 
-    @GetMapping("/{uid}")
-    public ResponseEntity<EmailMessage> getEmailDetails(@PathVariable long uid) {
-        EmailMessage email = mailService.getEmailMessage(uid);
+    @GetMapping("/{folder}/{uid}")
+    public ResponseEntity<EmailMessage> getEmailDetails(
+            @PathVariable String folder,
+            @PathVariable long uid) {
+        EmailMessage email = mailService.getEmailMessage(folder, uid);
 
         if (email != null) {
             return ResponseEntity.ok(email);
         }else {
             return ResponseEntity.notFound().build();
         }
-    }
-
-    @PostMapping
-    public ResponseEntity<Map<String, String>> refresh() {
-        mailService.clearCache();
-        return ResponseEntity.ok(Map.of("status", "Cache cleared"));
     }
 
 }

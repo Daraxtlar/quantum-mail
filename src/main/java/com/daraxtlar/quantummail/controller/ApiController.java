@@ -3,12 +3,9 @@ package com.daraxtlar.quantummail.controller;
 import com.daraxtlar.quantummail.model.AuthResponse;
 import com.daraxtlar.quantummail.model.LoginRequest;
 import com.daraxtlar.quantummail.model.RegisterRequest;
-import com.daraxtlar.quantummail.repository.UserRepository;
 import com.daraxtlar.quantummail.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 
 @RestController

@@ -1,15 +1,14 @@
 const API_URL = 'http://localhost:8080/api/mails';
 
 export const mailService = {
-    fetchEmails: async () => {
-        const response = await fetch(`${API_URL}/fetch`);
+    fetchEmails: async (folder = 'INBOX', page = 0, size = 20) => {
+        const response = await fetch(`${API_URL}/fetch?folder=${folder}&page=${page}&size=${size}`);
         if (!response.ok) throw new Error('Failed to fetch emails');
-        const data = await response.json();
-        return data.emails;
+        return await response.json();
     },
 
-    fetchEmailDetails: async (uid) => {
-        const response = await fetch(`${API_URL}/${uid}`);
+    fetchEmailDetails: async (folder, uid) => {
+        const response = await fetch(`${API_URL}/${folder}/${uid}`);
         if (!response.ok){
             if (response.status === 404) throw new Error('Email not found');
             throw new Error('Failed to fetch email details');
