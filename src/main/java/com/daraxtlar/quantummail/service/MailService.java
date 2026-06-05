@@ -30,68 +30,79 @@ public class MailService {
     @Value("${email.account.imap.ssl}")
     private boolean imapSsl;
 
-    private List<EmailMessage> cachedEmails = new ArrayList<>();
-    private long lastFetch = 0;
-    private static final long CACHE_MS = 60_000;
+    private Store store;
 
-    public List<EmailMessage> fetchEmails() {
-        if (System.currentTimeMillis() - lastFetch < CACHE_MS && !cachedEmails.isEmpty()) {
-            return cachedEmails;
-        }
 
+    public List<EmailMessage> fetchEmails(String folderName, int page, int size) {
+        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         List<EmailMessage> emails = new ArrayList<>();
-        Store store = null;
-        Folder inbox = null;
+        Folder folder = null;
 
-        try {
-            store = getConnectedStore();
-            inbox = store.getFolder("INBOX");
-            inbox.open(Folder.READ_ONLY);
+        try{
+            getConnectedStore();
+            folder = store.getFolder(folderToUse);
+            folder.open(Folder.READ_ONLY);
 
-            Message[] messages = inbox.getMessages();
+            int totalMessages = folder.getMessageCount();
+            int end = totalMessages - (page * size);
+            int start = Math.max(1, end-size + 1);
 
+            if (end <= 0) return emails;
+
+            Message[] messages = folder.getMessages(start, end);
             FetchProfile fp = new FetchProfile();
             fp.add(FetchProfile.Item.ENVELOPE);
             fp.add(UIDFolder.FetchProfileItem.UID);
-            fp.add(FetchProfile.Item.CONTENT_INFO);
-            inbox.fetch(messages, fp);
+            folder.fetch(messages, fp);
 
             for (int i = messages.length - 1; i >= 0; i--) {
                 Message message = messages[i];
-                EmailMessage emailMsg = new EmailMessage();
-
-                if (inbox instanceof UIDFolder uidFolder) {
-                    emailMsg.setId(String.valueOf(uidFolder.getUID(message)));
-                } else {
-                    emailMsg.setId(String.valueOf(i));
-                }
-
-                emailMsg.setSubject(message.getSubject());
-                emailMsg.setSentDate(message.getSentDate());
-
-                if (message.getFrom() != null && message.getFrom().length > 0) {
-                    emailMsg.setFrom(((InternetAddress) message.getFrom()[0]).getAddress());
-                }
-
-                emailMsg.setHasAttachments(message.isMimeType("multipart/mixed") || message.isMimeType("multipart/related"));
-                emailMsg.setSnippet(extractSnippet(message));
-
-                emailMsg.setContent("");
-
-                emails.add(emailMsg);
+                emails.add(mapMessageToEmailMessage(message, folder));
             }
-
-            cachedEmails = emails;
-            lastFetch = System.currentTimeMillis();
-
-        } catch (Exception e) {
+        }catch (Exception e){
             e.printStackTrace();
         } finally {
-            closeQuietly(inbox);
-            closeQuietly(store);
+            closeQuietly(folder);
+        }
+        return emails;
+    }
+
+    private EmailMessage mapMessageToEmailMessage(Message message, Folder folder) throws Exception {
+        EmailMessage emailMsg = new EmailMessage();
+
+        if (folder instanceof UIDFolder uidFolder) {
+            emailMsg.setId(String.valueOf(uidFolder.getUID(message)));
+        }else {
+            emailMsg.setId(String.valueOf(message.getMessageNumber()));
         }
 
-        return emails;
+        emailMsg.setSubject(message.getSubject());
+        emailMsg.setSentDate(message.getSentDate());
+        if (message.getFrom() != null && message.getFrom().length > 0) {
+            emailMsg.setFrom(((InternetAddress) message.getFrom()[0]).getAddress());
+        }
+
+        emailMsg.setHasAttachments(message.isMimeType("multipart/mixed") || message.isMimeType("multipart/related"));
+        emailMsg.setSnippet(extractSnippet(message));
+
+        emailMsg.setContent("");
+        return emailMsg;
+    }
+
+    public int getFolderMessageCount(String folderName) {
+        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
+        Folder folder = null;
+
+        try{
+            getConnectedStore();
+            folder = store.getFolder(folderToUse);
+            folder.open(Folder.READ_ONLY);
+            return folder.getMessageCount();
+        } catch (Exception e) {
+            return 0;
+        } finally {
+            closeQuietly(folder);
+        }
     }
 
     private String extractSnippet(Message message) {
@@ -131,7 +142,11 @@ public class MailService {
         return Jsoup.parse(html).text();
     }
 
-    private Store getConnectedStore() throws MessagingException {
+    private synchronized void getConnectedStore() throws MessagingException {
+        if (store != null && store.isConnected()) {
+            return;
+        }
+
         Properties props = new Properties();
         props.put("mail.store.protocol", "imaps");
         props.put("mail.imaps.host", imapHost);
@@ -140,9 +155,8 @@ public class MailService {
         props.put("mail.imaps.peek", "true");
 
         Session session = Session.getInstance(props);
-        Store store = session.getStore("imaps");
-        store.connect(imapHost, imapPort, username, password);
-        return store;
+        this.store = session.getStore("imaps");
+        this.store.connect(imapHost, imapPort, username, password);
     }
 
     private void closeQuietly(AutoCloseable resource) {
@@ -151,13 +165,13 @@ public class MailService {
         }
     }
 
-    public EmailMessage getEmailMessage(long uid) {
-        Store store = null;
+    public EmailMessage getEmailMessage(String folderName, long uid) {
+        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
 
         try {
-            store = getConnectedStore();
-            folder = store.getFolder("INBOX");
+            getConnectedStore();
+            folder = store.getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
 
             if (folder instanceof UIDFolder uidFolder) {
@@ -183,7 +197,6 @@ public class MailService {
             e.printStackTrace();
         }finally {
             closeQuietly(folder);
-            closeQuietly(store);
         }
 
         return null;
@@ -235,12 +248,13 @@ public class MailService {
     }
 
 
-    public byte[] downloadAttachment(long uid, String fileName) {
-        Store store = null;
+    public byte[] downloadAttachment(String folderName, long uid, String fileName) {
+        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
+
         try {
-            store = getConnectedStore();
-            folder = store.getFolder("INBOX");
+            getConnectedStore();
+            folder = store.getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
             Message message = ((UIDFolder) folder).getMessageByUID(uid);
 
@@ -249,7 +263,6 @@ public class MailService {
             e.printStackTrace();
         } finally {
             closeQuietly(folder);
-            closeQuietly(store);
         }
         return null;
     }
@@ -303,10 +316,5 @@ public class MailService {
                 extractAttachmentsRecursive(mp.getBodyPart(i), list);
             }
         }
-    }
-
-    public void clearCache() {
-        cachedEmails.clear();
-        lastFetch = 0;
     }
 }

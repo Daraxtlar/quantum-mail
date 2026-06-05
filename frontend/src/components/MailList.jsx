@@ -1,15 +1,13 @@
 import "../styles/Mail-list.css";
 import MailItem from "./MailItem.jsx";
-import {Archive, Funnel, MoveRight, Trash2, Star, ChevronRight, ChevronLeft} from "lucide-react"
+import {Archive, Funnel, MoveRight, Trash2, Star, ChevronRight, ChevronLeft, Loader2} from "lucide-react"
 import {useEffect, useState} from "react";
 
 
-function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPage, onPageChange}) {
+function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPage, totalPages= 1,onPageChange, loading}) {
     const [selectedMails, setSelectedMails] = useState([]);
-    const mailsPerPage = 20;
 
-
-    const filteredMails = searchQuery.trim()
+    const currentMails = searchQuery.trim()
         ? mails.filter(mail =>
             mail.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             mail.sender?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -21,14 +19,6 @@ function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPag
     useEffect(() => {
         setSelectedMails([]);
     }, [mails]);
-
-
-    const totalPages = Math.ceil(filteredMails.length / mailsPerPage);
-    const startIndex = (currentPage - 1) * mailsPerPage;
-    const endIndex = startIndex + mailsPerPage;
-    const currentMails = filteredMails.slice(startIndex, endIndex);
-    const showingFrom = filteredMails.length > 0 ? startIndex + 1 : 0;
-    const showingTo = Math.min(endIndex, filteredMails.length);
 
     const allCurrentSelected = currentMails.length > 0 && currentMails.every(m => selectedMails.includes(m.id));
 
@@ -123,7 +113,12 @@ function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPag
             </div>
 
             <div className={"mail-list"}>
-                {currentMails.length === 0 ? (
+                {loading ? (
+                    <div className={"loading-state"}>
+                        <div className={"spinner"}><Loader2 className="animate-spin text-blue-500" size={48} /></div>
+                        <p>Loading messages...</p>
+                    </div>
+                ) : currentMails.length === 0 ? (
                     <div className={"empty-state"}>
                         <p>{searchQuery ? "No results found" : "No messages in this folder"}</p>
                     </div>
@@ -140,10 +135,10 @@ function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPag
                 )}
             </div>
 
-            {filteredMails.length > mailsPerPage && (
+            {totalPages > 1 && (
                 <div className={"mail-pagination"}>
                     <span className={"pagination-info"}>
-                        {showingFrom}–{showingTo} of {filteredMails.length}
+                        Page {currentPage} of {totalPages}
                     </span>
 
                     <div className={"pagination-buttons"}>
