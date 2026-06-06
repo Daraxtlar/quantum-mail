@@ -7,9 +7,11 @@ import {
     Settings
 } from "lucide-react";
 import {useEffect, useState} from "react";
+import {useNavigate} from "react-router-dom";
 
 function Topbar({onCompose, onSearch}){
     const [username, setUsername] = useState("");
+    const navigate = useNavigate();
 
     //TODO: Fetch username from backend and set it to state
     useEffect(() => {
@@ -50,7 +52,7 @@ function Topbar({onCompose, onSearch}){
                 <span className={"username"}>{username}</span>
 
                 <button className={"topbar-icon-button"}>
-                    <Settings size={20} />
+                    <Settings size={20} onClick={() => navigate("/settings")}/>
                 </button>
             </div>
         </header>
