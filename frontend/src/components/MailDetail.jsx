@@ -3,7 +3,7 @@ import { ArrowLeft, Archive, Trash2, Star, Reply, Forward, MoreHorizontal, Paper
 import DOMPurify from "dompurify";
 import {useRef} from "react";
 
-function MailDetail({mail, onBack, onReply}) {
+function MailDetail({mail, onBack, onReply, folder}) {
     if (!mail) return null;
     const iframeRef = useRef(null);
     const initial = mail.sender?.charAt(0).toUpperCase() || "?";
@@ -19,7 +19,7 @@ function MailDetail({mail, onBack, onReply}) {
 
         processed = processed.replace(/src=['"]cid:([^'"]+)['"]/gi, (match, cidName) => {
             const safeCid = encodeURIComponent(cidName);
-            return `src="http://localhost:8080/api/mails/${mail.id}/attachments/${safeCid}"`;
+            return `src="http://localhost:8080/api/mails/${folder}/${mail.id}/attachments/${safeCid}"`;
         });
 
         processed = processed.replace(/data-src=/gi, 'src=');
@@ -51,7 +51,7 @@ function MailDetail({mail, onBack, onReply}) {
 
 
     const handleDownload = (fileName) => {
-        window.open(`http://localhost:8080/api/mails/${mail.id}/attachments/${fileName}?download=true`, "_blank")
+        window.open(`http://localhost:8080/api/mails/${folder}/${mail.id}/attachments/${fileName}?download=true`, "_blank");
     }
 
     return (
