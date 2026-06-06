@@ -201,6 +201,7 @@ function Inbox() {
                         mail={selectedMail}
                         onBack={() => setSelectedMail(null)}
                         onReply={replyToMail}
+                        folder={currentFolder}
                     />
                 ) : (
                     <MailList
