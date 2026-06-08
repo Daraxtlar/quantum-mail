@@ -14,16 +14,18 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncodeService encoder;
+    private final JwtService jwtService;
 
-    public UserService(UserRepository userRepository, PasswordEncodeService encoder) {
+    public UserService(UserRepository userRepository, PasswordEncodeService encoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.encoder = encoder;
+        this.jwtService = jwtService;
     }
 
     public ResponseEntity<AuthResponse> createUser(RegisterRequest request) {
 
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body(new AuthResponse("Username already exists", false, null));
+            return ResponseEntity.badRequest().body(new AuthResponse("Username already exists", false, null, null));
         }
 
         User user = new User();
@@ -52,6 +54,40 @@ public class UserService {
             return ResponseEntity.status(401).body(new AuthResponse("Invalid password", false));
         }
 
-        return ResponseEntity.ok().body(new AuthResponse("User logged in successfully", true, user.getUsername()));
+        String token = jwtService.generateToken(request.getUsername());
+
+        return ResponseEntity.ok().body(new AuthResponse("User logged in successfully", true, user.getUsername(), token));
+    }
+
+    public ResponseEntity<String> changePassword(String username, String oldPassword, String newPassword) {
+        Optional<User> userOptional = userRepository.findByUsername(username);
+
+        if (userOptional.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+
+        User user = userOptional.get();
+
+        if (!encoder.matches(oldPassword, user.getPassword())) {
+            return ResponseEntity.status(401).body("Old password does not match");
+        }
+
+        user.setPassword(encoder.encode(newPassword));
+        userRepository.save(user);
+        return ResponseEntity.ok().body("Password changed successfully");
+    }
+
+    public ResponseEntity<String> deleteAccount(String username, String password) {
+        Optional<User> userOptional = userRepository.findByUsername(username);
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+
+            if (!encoder.matches(password, user.getPassword())) {
+                return ResponseEntity.status(401).body("Password does not match");
+            }
+
+            userRepository.delete(user);
+            return ResponseEntity.ok("User deleted successfully");
+        }
+        return ResponseEntity.badRequest().body("User not found");
     }
 }

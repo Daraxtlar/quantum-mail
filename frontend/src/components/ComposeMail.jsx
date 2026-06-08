@@ -4,6 +4,8 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import {mailService} from "../services/MailService.js";
 
 function ComposeMail({onClose, userEmail, replyTo, folder}) {
+    const [senderEmail, setSenderEmail] = useState("lukasz78899@op.pl");
+    const [suggestions, setSuggestions] = useState([]);
 
     const [to, setTo] = useState(
         replyTo
@@ -24,6 +26,16 @@ function ComposeMail({onClose, userEmail, replyTo, folder}) {
             ? `\n\n---------- Forwarded message ----------\n\n`
             : ""
     );
+
+    useEffect(() => {
+        if (senderEmail){
+            mailService.fetchSuggestions(senderEmail)
+                .then(data => setSuggestions(data))
+                .catch(err => {
+                    console.error("Error fetching suggestions:", err);
+                });
+        }
+    }, [senderEmail])
 
     useEffect(() => {
         setTo(
@@ -176,8 +188,7 @@ function ComposeMail({onClose, userEmail, replyTo, folder}) {
         setSending(true);
 
         const formData = new FormData();
-        //userEmail || "user@quantummail.com"
-        formData.append('senders', 'lukasz78899@op.pl');
+        formData.append('senders', senderEmail);
 
         const recipients = to.split(",").map(email => email.trim()).filter(Boolean);
         recipients.forEach(recipient => formData.append('recipients', recipient));
@@ -266,6 +277,18 @@ function ComposeMail({onClose, userEmail, replyTo, folder}) {
 
                 <div className={"compose-body"}>
                     <div className={"compose-field"}>
+                        <label className={"compose-label"}>From:</label>
+                        <select
+                            className={"compose-input"}
+                            value={senderEmail}
+                            onChange={(e) => setSenderEmail(e.target.value)}
+                        >
+                            <option value="lukasz78899@op.pl">lukasz78899@op.pl</option>
+                            <option value="testowy-drugi-email@op.pl">testowy-drugi-email@op.pl</option>
+                        </select>
+                    </div>
+
+                    <div className={"compose-field"}>
                         <label className={"compose-label"}>To:</label>
                         <input
                             type={"text"}
@@ -273,8 +296,14 @@ function ComposeMail({onClose, userEmail, replyTo, folder}) {
                             value={to}
                             onChange={(e) => setTo(e.target.value)}
                             placeholder={"recipient@email.com"}
+                            list={"recent-recipients"}
                             autoFocus
                         />
+                        <datalist id={"recent-recipients"}>
+                            {suggestions.map((email, index) => (
+                                <option key={index} value={email}/>
+                            ))}
+                        </datalist>
                     </div>
 
                     <div className={"compose-field"}>

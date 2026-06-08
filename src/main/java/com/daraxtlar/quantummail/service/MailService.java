@@ -2,6 +2,7 @@ package com.daraxtlar.quantummail.service;
 
 import com.daraxtlar.quantummail.model.Attachment;
 import com.daraxtlar.quantummail.model.EmailMessage;
+import com.daraxtlar.quantummail.repository.MailRepository;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.util.ByteArrayDataSource;
@@ -10,9 +11,12 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import jakarta.mail.UIDFolder;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -34,6 +38,9 @@ public class MailService {
 
     @Value("${email.account.imap.ssl}")
     private boolean imapSsl;
+
+    @Autowired
+    private MailRepository mailRepository;
 
     private final ThreadLocal<Store> threadLocalStore = new ThreadLocal<>();
 
@@ -373,4 +380,9 @@ public class MailService {
         }
         return null;
     }
+
+    public List<String> getSuggestedRecipients(String senderEmail) {
+        return mailRepository.findRecentRecipients(senderEmail);
+    }
+
 }

@@ -147,3 +147,72 @@ body {
 .setting-select:focus{
     border-color: var(--accent-blue);
 }
+
+.account-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+    max-width: 500px;
+    color: var(--text-primary);
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-medium);
+}
+
+.settings-section h3 {
+    font-size: 18px;
+    color: var(--text-secondary);
+}
+
+.account-settings input {
+    padding: 10px 14px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-medium);
+    background-color: var(--settings-search-bg);
+    color: var(--text-primary);
+    outline: none;
+    margin: 10px 10px;
+    transition: border-color 0.2s;
+}
+
+.account-settings input:focus {
+    border-color: var(--accent-blue);
+}
+
+.account-settings button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    background-color: var(--accent-blue);
+    color: var(--text-primary);
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.account-settings button:hover {
+    opacity: 0.9;
+}
+
+.delete-account {
+    border-bottom: none !important;
+}
+
+.delete-btn {
+    background-color: #dc3545 !important;
+}
+
+.alert {
+    padding: 12px;
+    border-radius: 8px;
+    background-color: var(--settings-search-bg);
+    border-left: 4px solid var(--accent-blue);
+    font-size: 14px;
+}

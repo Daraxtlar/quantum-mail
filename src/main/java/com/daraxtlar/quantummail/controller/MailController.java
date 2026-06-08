@@ -3,6 +3,7 @@ package com.daraxtlar.quantummail.controller;
 import com.daraxtlar.quantummail.model.EmailMessage;
 import com.daraxtlar.quantummail.service.MailService;
 import com.daraxtlar.quantummail.service.SendEmailService;
+import jakarta.persistence.Id;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
@@ -93,6 +94,11 @@ public class MailController {
         }else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/suggestions")
+    public ResponseEntity<List<String>> getSuggestions(@RequestParam String senderEmail) {
+        return ResponseEntity.ok(mailService.getSuggestedRecipients(senderEmail));
     }
 
 }

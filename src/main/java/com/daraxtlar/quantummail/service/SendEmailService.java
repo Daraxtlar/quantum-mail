@@ -1,5 +1,7 @@
 package com.daraxtlar.quantummail.service;
 
+import com.daraxtlar.quantummail.entity.Mail;
+import com.daraxtlar.quantummail.repository.MailRepository;
 import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
@@ -9,6 +11,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 
@@ -20,6 +23,9 @@ public class SendEmailService {
 
     @Autowired
     private MailService mailService;
+
+    @Autowired
+    MailRepository mailRepository;
 
     public Boolean sendEmail(String senders, String[] recipients, String subject, String text, String method, MultipartFile[] files, String folderName, Long parentMailId, String actionType) {
 
@@ -80,6 +86,22 @@ public class SendEmailService {
 
             MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(email, mailSender.getSession());
             mailSender.send(mimeMessage);
+
+            for (String recipient : recipients) {
+                String cleanRecipient = recipient.trim();
+                if (!cleanRecipient.isEmpty()) {
+                    Mail contact = mailRepository.findBySenderEmailAndRecipientEmail(senders, cleanRecipient).orElse(new Mail());
+
+                    if (contact.getId() == null) {
+                        contact.setSenderEmail(senders);
+                        contact.setRecipientEmail(cleanRecipient);
+                    }
+
+                    contact.setSentDate(LocalDateTime.now());
+                    mailRepository.save(contact);
+                }
+            }
+
             return true;
         } catch (Exception e) {
             System.out.println("Błąd podczas wysyłania przez Simple Java Mail:");
