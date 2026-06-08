@@ -111,3 +111,39 @@ body {
 .search-box input::placeholder{
     color: var(--text-muted);
 }
+
+.appearance-settings-container{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px 0;
+}
+
+.setting-group{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 400px;
+}
+
+.setting-label{
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.setting-select{
+    padding: 10px 14px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-medium);
+    background-color: var(--settings-search-bg);
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.setting-select:focus{
+    border-color: var(--accent-blue);
+}

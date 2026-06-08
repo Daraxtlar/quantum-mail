@@ -167,10 +167,6 @@ function Inbox() {
         }
     };
 
-    const handleSendMail = () => {
-        closeCompose();
-    };
-
     const openCompose = () => {
         setReplyMail(null);
         setShowCompose(true);
@@ -220,9 +216,9 @@ function Inbox() {
             {showCompose && (
                 <ComposeMail
                     onClose={closeCompose}
-                    onSend={handleSendMail}
                     userEmail={currentAccount || "user@quantummail.com"}
                     replyTo={replyMail}
+                    folder={currentFolder}
                 />
             )}
         </div>

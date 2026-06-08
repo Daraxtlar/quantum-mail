@@ -78,6 +78,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>simple-java-mail</artifactId>
+            <version>8.12.6</version>
+        </dependency>
+
 
     </dependencies>
 

@@ -4,7 +4,12 @@ import com.daraxtlar.quantummail.model.Attachment;
 import com.daraxtlar.quantummail.model.EmailMessage;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jsoup.Jsoup;
+import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.email.EmailBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import jakarta.mail.UIDFolder;
@@ -30,7 +35,7 @@ public class MailService {
     @Value("${email.account.imap.ssl}")
     private boolean imapSsl;
 
-    private Store store;
+    private final ThreadLocal<Store> threadLocalStore = new ThreadLocal<>();
 
 
     public List<EmailMessage> fetchEmails(String folderName, int page, int size) {
@@ -40,7 +45,7 @@ public class MailService {
 
         try{
             getConnectedStore();
-            folder = store.getFolder(folderToUse);
+            folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
 
             int totalMessages = folder.getMessageCount();
@@ -95,7 +100,7 @@ public class MailService {
 
         try{
             getConnectedStore();
-            folder = store.getFolder(folderToUse);
+            folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
             return folder.getMessageCount();
         } catch (Exception e) {
@@ -142,21 +147,20 @@ public class MailService {
         return Jsoup.parse(html).text();
     }
 
-    private synchronized void getConnectedStore() throws MessagingException {
-        if (store != null && store.isConnected()) {
-            return;
-        }
+    private void getConnectedStore() throws MessagingException {
+        Store store = threadLocalStore.get();
+        if (store != null && store.isConnected()) return;
 
         Properties props = new Properties();
-        props.put("mail.store.protocol", "imaps");
         props.put("mail.imaps.host", imapHost);
         props.put("mail.imaps.port", String.valueOf(imapPort));
         props.put("mail.imaps.ssl.enable", "true");
         props.put("mail.imaps.peek", "true");
 
         Session session = Session.getInstance(props);
-        this.store = session.getStore("imaps");
-        this.store.connect(imapHost, imapPort, username, password);
+        store = session.getStore("imaps");
+        store.connect(imapHost, imapPort, username, password);
+        threadLocalStore.set(store);
     }
 
     private void closeQuietly(AutoCloseable resource) {
@@ -171,7 +175,7 @@ public class MailService {
 
         try {
             getConnectedStore();
-            folder = store.getFolder(folderToUse);
+            folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
 
             if (folder instanceof UIDFolder uidFolder) {
@@ -254,7 +258,7 @@ public class MailService {
 
         try {
             getConnectedStore();
-            folder = store.getFolder(folderToUse);
+            folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
             Message message = ((UIDFolder) folder).getMessageByUID(uid);
 
@@ -316,5 +320,57 @@ public class MailService {
                 extractAttachmentsRecursive(mp.getBodyPart(i), list);
             }
         }
+    }
+
+    public Email prepareBaseEmailFromImap(String folderName, long uid) {
+        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
+        Folder folder = null;
+        try {
+            getConnectedStore();
+            folder = threadLocalStore.get().getFolder(folderToUse);
+            folder.open(Folder.READ_ONLY);
+
+            if (folder instanceof UIDFolder uidFolder) {
+                Message message = uidFolder.getMessageByUID(uid);
+                if (message instanceof jakarta.mail.internet.MimeMessage mimeMessage) {
+                    Email converted = EmailConverter.mimeMessageToEmail(mimeMessage);
+
+                    List<AttachmentResource> fixedImages = new ArrayList<>();
+                    for (AttachmentResource img : converted.getEmbeddedImages()) {
+                        try {
+                            byte[] data = img.getDataSource().getInputStream().readAllBytes();
+                            if (data.length == 0) {
+                                byte[] fetched = findPartDataRecursive(mimeMessage, img.getName());
+                                if (fetched != null && fetched.length > 0) {
+                                    String mime = img.getDataSource().getContentType();
+                                    fixedImages.add(new AttachmentResource(img.getName(),
+                                            new ByteArrayDataSource(fetched, mime)));
+                                }
+                            } else {
+                                fixedImages.add(img);
+                            }
+                        } catch (Exception e) {
+                            byte[] fetched = findPartDataRecursive(mimeMessage, img.getName());
+                            if (fetched != null && fetched.length > 0) {
+                                String mime = img.getDataSource().getContentType();
+                                fixedImages.add(new AttachmentResource(img.getName(),
+                                        new ByteArrayDataSource(fetched, mime)));
+                            }
+                        }
+                    }
+
+                    return EmailBuilder.copying(converted)
+                            .clearEmbeddedImages()
+                            .withEmbeddedImages(fixedImages)
+                            .buildEmail();
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Błąd podczas przygotowania emaila z IMAP:");
+            e.printStackTrace();
+        } finally {
+            closeQuietly(folder);
+        }
+        return null;
     }
 }

@@ -31,8 +31,11 @@ public class MailController {
             @RequestParam String subject,
             @RequestParam String text,
             @RequestParam String method,
-            @RequestParam(required = false) MultipartFile[] files) {
-        Boolean result = sendEmailService.sendEmail(senders, recipients, subject, text, method, files);
+            @RequestParam(required = false) MultipartFile[] files,
+            @RequestParam(required = false) String folderName,
+            @RequestParam(required = false) Long parentMailId,
+            @RequestParam(required = false) String actionType) {
+        Boolean result = sendEmailService.sendEmail(senders, recipients, subject, text, method, files, folderName, parentMailId, actionType);
 
         if (result) {
             return ResponseEntity.ok(Map.of("message", "Email sent successfully"));

@@ -1,12 +1,14 @@
 import "../styles/Compose-mail.css";
 import {X, Paperclip, Send, Trash2, Minus, Maximize2} from "lucide-react";
 import {useCallback, useEffect, useRef, useState} from "react";
+import {mailService} from "../services/MailService.js";
 
-function ComposeMail({onClose, onSend, userEmail, replyTo}) {
+function ComposeMail({onClose, userEmail, replyTo, folder}) {
+
     const [to, setTo] = useState(
         replyTo
             ? replyTo._type === "reply"
-                ? replyTo.email
+                ? replyTo.sender
                 : ""
             : ""
     );
@@ -19,7 +21,7 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
     );
     const [body, setBody] = useState(
         replyTo && replyTo._type === "forward"
-            ? `\n\n---------- Forwarded message ----------\nFrom: ${replyTo.sender} <${replyTo.email}>\nDate: ${replyTo.date}\nSubject: ${replyTo.subject}\n\n${replyTo.body}`
+            ? `\n\n---------- Forwarded message ----------\n\n`
             : ""
     );
 
@@ -27,7 +29,7 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
         setTo(
             replyTo
                 ? replyTo._type === "reply"
-                    ? replyTo.email
+                    ? replyTo.sender
                     : ""
                 : ""
         );
@@ -40,7 +42,7 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
         );
         setBody(
             replyTo && replyTo._type === "forward"
-                ? `\n\n---------- Forwarded message ----------\nFrom: ${replyTo.sender} <${replyTo.email}>\nDate: ${replyTo.date}\nSubject: ${replyTo.subject}\n\n${replyTo.body}`
+                ? `\n\n---------- Forwarded message ----------\n\n`
                 : ""
         );
         setFiles([]);
@@ -181,31 +183,31 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
         recipients.forEach(recipient => formData.append('recipients', recipient));
 
         formData.append('subject', subject);
-        formData.append('text', body);
         formData.append('method', 'send');
+        formData.append('text', body);
+
+        if (replyTo){
+            formData.append('parentMailId', replyTo.id);
+            formData.append('folderName', folder || "INBOX");
+            formData.append('actionType', replyTo._type);
+        }
 
         if (files.length > 0){
             files.forEach(file => formData.append('files', file));
         }
 
         try{
-            const response = await fetch('/api/mails/send', {
-                method: 'POST',
-                body: formData
-            });
+            await mailService.sendEmail(formData);
 
-            if (response.ok){
-                setTo("");
-                setSubject("");
-                setBody("");
-                setFiles([]);
-                onClose?.();
-            }else {
-                //TODO JAKIS LEPSZY ALERT
-                alert("Failed to send email")
-            }
+            setTo("");
+            setSubject("");
+            setBody("");
+            setFiles([]);
+            onClose?.();
         }catch (error) {
-            console.log("Error sending email:", error);
+            console.error("Error sending email:", error);
+
+            //TODO JAKIŚ LEPSZY ALERT
              alert("Error sending email");
         } finally {
             setSending(false);
