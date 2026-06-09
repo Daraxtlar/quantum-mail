@@ -163,7 +163,7 @@ function Inbox() {
             setSelectedMail(formattedDetail);
 
             setMails(prevMails => prevMails.map(m => m.id === mail.id ? {...m, read: true, color: undefined} : m));
-            
+
         }catch (error){
             console.error("Error fetching email details:", error);
             alert("Failed to load email details. Please try again.");

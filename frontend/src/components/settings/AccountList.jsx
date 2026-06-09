@@ -22,6 +22,12 @@ function AccountList() {
         }
     }
 
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate("/login");
+    }
+
     const handleDeleteAccount = async () => {
         if (!deletePassword) {
             setMessage("Please enter your password to confirm account deletion.");
@@ -35,6 +41,7 @@ function AccountList() {
         try {
             await AccountService.deleteAccount(deletePassword);
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
             navigate("/login");
         } catch (err) {
             setMessage("Error deleting account: " + err.message);
@@ -52,6 +59,11 @@ function AccountList() {
                     <input type={"password"} placeholder={"New Password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required/>
                     <button type={"submit"}>Change Password</button>
                 </form>
+            </section>
+
+            <section className={"settings-section"}>
+                <p className={"settings-text"}>Finished working? Log out safely from your current session.</p>
+                <button onClick={handleLogout} className={"logout-btn"}>Log Out</button>
             </section>
 
             <section className={"settings-section delete-account"}>
