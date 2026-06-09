@@ -11,16 +11,26 @@ import {useNavigate} from "react-router-dom";
 import {mailService} from "../services/MailService.js";
 
 function Topbar({onCompose, onSearch}){
-    const [username, setUsername] = useState("");
+    const [username, setUsername] = useState(() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            try {
+                const user = JSON.parse(storedUser);
+                return user.username || "Unknown User";
+            } catch (error) {
+                console.error("Error parsing user from localStorage:", error);
+                return "Unknown User";
+            }
+        }
+        return "Unknown User";
+    })
     const [globalContacts, setGlobalContacts] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const navigate = useNavigate();
 
     const dropdownRef = useRef(null);
 
-    //TODO: Fetch username from backend and set it to state
     useEffect(() => {
-        setUsername("JohnSmith");
 
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {

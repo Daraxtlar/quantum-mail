@@ -1,15 +1,17 @@
 package com.daraxtlar.quantummail.controller;
 
+import com.daraxtlar.quantummail.entity.ImapMail;
 import com.daraxtlar.quantummail.model.EmailMessage;
 import com.daraxtlar.quantummail.service.MailService;
 import com.daraxtlar.quantummail.service.SendEmailService;
-import jakarta.persistence.Id;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.Map;
 
@@ -47,20 +49,29 @@ public class MailController {
 
     @GetMapping("/fetch")
     public ResponseEntity<?> fetchEmails(
+            @RequestParam String accountEmail,
             @RequestParam(defaultValue = "INBOX") String folder,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size){
-        List<EmailMessage> emails = mailService.fetchEmails(folder, page, size);
-        int totalCount = mailService.getFolderMessageCount(folder);
-        int totalPages = (int) Math.ceil((double) totalCount / (double) size);
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String query) {
+
+        Page<ImapMail> emailPage = mailService.getEmailsFromDb(accountEmail ,folder, query, page, size);
 
         return ResponseEntity.ok(Map.of(
-                "emails", emails,
-                "totalCount", totalCount,
-                "totalPages", totalPages,
+                "emails", emailPage.getContent(),
+                "totalCount", emailPage.getTotalElements(),
+                "totalPages", emailPage.getTotalPages(),
                 "currentPage", page,
                 "folder", folder
                 ));
+    }
+
+    @PostMapping("/sync")
+    public ResponseEntity<?> syncEmails(
+            @RequestParam String accountEmail,
+            @RequestParam(defaultValue = "INBOX") String folder){
+        mailService.syncFolderFromImap(accountEmail, folder);
+        return ResponseEntity.ok(Map.of("message", "Folder synchronized successfully"));
     }
 
     @GetMapping("/{folder}/{uid}/attachments/{filename:.+}")
@@ -83,11 +94,12 @@ public class MailController {
                 .body(data);
     }
 
-    @GetMapping("/{folder}/{uid}")
+    @GetMapping("/{accountEmail}/{folder}/{uid}")
     public ResponseEntity<EmailMessage> getEmailDetails(
+            @PathVariable String accountEmail,
             @PathVariable String folder,
             @PathVariable long uid) {
-        EmailMessage email = mailService.getEmailMessage(folder, uid);
+        EmailMessage email = mailService.getEmailMessage(accountEmail ,folder, uid);
 
         if (email != null) {
             return ResponseEntity.ok(email);

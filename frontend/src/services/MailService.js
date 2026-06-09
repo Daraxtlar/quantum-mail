@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const API_URL = 'http://localhost:8080/api/mails';
 
 const getHeaders = () => {
@@ -19,16 +21,16 @@ const handleResponse = async (response) => {
 };
 
 export const mailService = {
-    fetchEmails: async (folder = 'INBOX', page = 0, size = 20) => {
-        const response = await fetch(`${API_URL}/fetch?folder=${folder}&page=${page}&size=${size}`, {
+    fetchEmails: async (accountEmail ,folder = 'INBOX', page = 0, size = 20, query) => {
+        const response = await fetch(`${API_URL}/fetch?accountEmail=${accountEmail}&folder=${folder}&page=${page}&size=${size}&query=${query}`, {
             headers: getHeaders()
         });
         await handleResponse(response);
         return await response.json();
     },
 
-    fetchEmailDetails: async (folder, uid) => {
-        const response = await fetch(`${API_URL}/${folder}/${uid}`, {
+    fetchEmailDetails: async (accountEmail ,folder, uid) => {
+        const response = await fetch(`${API_URL}/${accountEmail}/${folder}/${uid}`, {
             headers: getHeaders()
         });
         await handleResponse(response);
@@ -61,5 +63,12 @@ export const mailService = {
         await handleResponse(response);
         return await response.json();
     },
+
+    syncEmails: async (accountEmail, folder) => {
+        const response = await axios.post(`${API_URL}/sync`, null, {
+            params: {accountEmail, folder}
+        });
+        return response.data;
+    }
 
 };

@@ -7,6 +7,7 @@ import com.daraxtlar.quantummail.model.RegisterRequest;
 import com.daraxtlar.quantummail.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
 import java.util.Optional;
 
 @Service
