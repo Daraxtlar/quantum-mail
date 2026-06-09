@@ -13,15 +13,26 @@ import java.util.Optional;
 
 public interface MailRepository extends JpaRepository<Mail, Long> {
 
-    Optional<Mail> findBySenderEmailAndRecipientEmail(String senderEmail, String recipientEmail);
+    Optional<Mail> findBySenderEmailAndRecipientEmailAndUserId(String senderEmail, String recipientEmail, Long userId);
 
-    @Query("SELECT m.recipientEmail FROM Mail m WHERE m.senderEmail = :senderEmail ORDER BY m.sentDate DESC")
-    List<String> findRecentRecipients(@Param("senderEmail") String senderEmail);
+    @Query("SELECT m.recipientEmail FROM Mail m " +
+            "WHERE m.user.id = :userId AND m.senderEmail = :senderEmail " +
+            "GROUP BY m.recipientEmail " +
+            "ORDER BY MAX(m.sentDate) DESC")
+    List<String> findRecentRecipientsByEmail(
+            @Param("userId") Long userId,
+            @Param("senderEmail") String senderEmail,
+            Pageable pageable);
 
     @Modifying
     @Query("DELETE FROM Mail m WHERE m.sentDate < :thresholdDate")
     void deleteOlderThan(@Param("thresholdDate") LocalDateTime thresholdDate);
 
-    @Query("SELECT m.recipientEmail FROM Mail m GROUP BY m.recipientEmail ORDER BY MAX(m.sentDate) DESC")
-    List<String> findGlobalRecentRecipients(Pageable pageable);
+    @Query("SELECT m.recipientEmail FROM Mail m " +
+            "WHERE m.user.id = :userId " +
+            "GROUP BY m.recipientEmail " +
+            "ORDER BY MAX(m.sentDate) DESC")
+    List<String> findRecentRecipientsByAccount(
+            @Param("userId") Long userId,
+            Pageable pageable);
 }

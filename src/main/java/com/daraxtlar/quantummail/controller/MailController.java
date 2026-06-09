@@ -2,8 +2,10 @@ package com.daraxtlar.quantummail.controller;
 
 import com.daraxtlar.quantummail.entity.ImapMail;
 import com.daraxtlar.quantummail.model.EmailMessage;
+import com.daraxtlar.quantummail.service.JwtService;
 import com.daraxtlar.quantummail.service.MailService;
 import com.daraxtlar.quantummail.service.SendEmailService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,6 +24,9 @@ public class MailController {
     private final SendEmailService sendEmailService;
     private final MailService mailService;
 
+    @Autowired
+    JwtService jwtService;
+
     public MailController(SendEmailService sendEmailService, MailService mailService) {
         this.sendEmailService = sendEmailService;
         this.mailService = mailService;
@@ -29,6 +34,7 @@ public class MailController {
 
     @PostMapping("/send")
     public ResponseEntity<?> sendEmail(
+            @RequestHeader("Authorization") String bearerToken,
             @RequestParam String senders,
             @RequestParam String[] recipients,
             @RequestParam String subject,
@@ -38,7 +44,11 @@ public class MailController {
             @RequestParam(required = false) String folderName,
             @RequestParam(required = false) Long parentMailId,
             @RequestParam(required = false) String actionType) {
-        Boolean result = sendEmailService.sendEmail(senders, recipients, subject, text, method, files, folderName, parentMailId, actionType);
+
+        String token = bearerToken.substring(7);
+        Long userId = jwtService.getUserIdFromToken(token);
+
+        Boolean result = sendEmailService.sendEmail(userId ,senders, recipients, subject, text, method, files, folderName, parentMailId, actionType);
 
         if (result) {
             return ResponseEntity.ok(Map.of("message", "Email sent successfully"));
@@ -109,13 +119,20 @@ public class MailController {
     }
 
     @GetMapping("/suggestions")
-    public ResponseEntity<List<String>> getSuggestions(@RequestParam String senderEmail) {
-        return ResponseEntity.ok(mailService.getSuggestedRecipients(senderEmail));
+    public ResponseEntity<List<String>> getSuggestions(
+            @RequestHeader("Authorization") String bearerToken,
+            @RequestParam String senderEmail) {
+        String token = bearerToken.substring(7);
+        Long userId = jwtService.getUserIdFromToken(token);
+
+        return ResponseEntity.ok(mailService.getSuggestedRecipients(userId ,senderEmail));
     }
 
     @GetMapping("/suggestions/global")
-    public ResponseEntity<List<String>> getGlobalSuggestions() {
-        return ResponseEntity.ok(mailService.getGlobalSuggestedRecipients());
+    public ResponseEntity<List<String>> getGlobalSuggestions(@RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken.substring(7);
+        Long userId = jwtService.getUserIdFromToken(token);
+        return ResponseEntity.ok(mailService.getGlobalSuggestedRecipients(userId));
     }
 
 }

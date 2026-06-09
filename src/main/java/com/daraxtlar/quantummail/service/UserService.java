@@ -55,7 +55,7 @@ public class UserService {
             return ResponseEntity.status(401).body(new AuthResponse("Invalid password", false));
         }
 
-        String token = jwtService.generateToken(request.getUsername());
+        String token = jwtService.generateToken(request.getUsername(), user.getId());
 
         return ResponseEntity.ok().body(new AuthResponse("User logged in successfully", true, user.getUsername(), token));
     }

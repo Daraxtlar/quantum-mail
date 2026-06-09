@@ -408,12 +408,12 @@ public class MailService {
         return null;
     }
 
-    public List<String> getSuggestedRecipients(String senderEmail) {
-        return mailRepository.findRecentRecipients(senderEmail);
+    public List<String> getSuggestedRecipients(Long userId, String senderEmail) {
+        return mailRepository.findRecentRecipientsByEmail(userId, senderEmail, PageRequest.of(0, 10));
     }
 
-    public List<String> getGlobalSuggestedRecipients() {
-        return mailRepository.findGlobalRecentRecipients(PageRequest.of(0, 50));
+    public List<String> getGlobalSuggestedRecipients(Long userId) {
+        return mailRepository.findRecentRecipientsByAccount(userId, PageRequest.of(0, 20));
     }
 
     public org.springframework.data.domain.Page<ImapMail> getEmailsFromDb(String accountEmail ,String folderName, String query, int page, int size) {

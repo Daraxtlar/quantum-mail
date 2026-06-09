@@ -2,6 +2,7 @@ package com.daraxtlar.quantummail.service;
 
 import com.daraxtlar.quantummail.entity.Mail;
 import com.daraxtlar.quantummail.repository.MailRepository;
+import com.daraxtlar.quantummail.repository.UserRepository;
 import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
@@ -27,7 +28,10 @@ public class SendEmailService {
     @Autowired
     MailRepository mailRepository;
 
-    public Boolean sendEmail(String senders, String[] recipients, String subject, String text, String method, MultipartFile[] files, String folderName, Long parentMailId, String actionType) {
+    @Autowired
+    private UserRepository userRepository;
+
+    public Boolean sendEmail(Long userId, String senders, String[] recipients, String subject, String text, String method, MultipartFile[] files, String folderName, Long parentMailId, String actionType) {
 
         try {
             Email email;
@@ -90,11 +94,12 @@ public class SendEmailService {
             for (String recipient : recipients) {
                 String cleanRecipient = recipient.trim();
                 if (!cleanRecipient.isEmpty()) {
-                    Mail contact = mailRepository.findBySenderEmailAndRecipientEmail(senders, cleanRecipient).orElse(new Mail());
+                    Mail contact = mailRepository.findBySenderEmailAndRecipientEmailAndUserId(senders, cleanRecipient, userId).orElse(new Mail());
 
                     if (contact.getId() == null) {
                         contact.setSenderEmail(senders);
                         contact.setRecipientEmail(cleanRecipient);
+                        contact.setUser(userRepository.getReferenceById(userId));
                     }
 
                     contact.setSentDate(LocalDateTime.now());
