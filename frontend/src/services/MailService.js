@@ -9,7 +9,7 @@ const getHeaders = () => {
 };
 
 const handleResponse = async (response) => {
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
         localStorage.removeItem('token');
         window.location.href = '/login';
         throw new Error("SESSION_EXPIRED");
@@ -48,6 +48,14 @@ export const mailService = {
 
     fetchSuggestions: async (senderEmail) => {
         const response = await fetch(`${API_URL}/suggestions?senderEmail=${encodeURIComponent(senderEmail)}`, {
+            headers: getHeaders()
+        });
+        await handleResponse(response);
+        return await response.json();
+    },
+
+    fetchGlobalSuggestions: async () => {
+        const response = await fetch(`${API_URL}/suggestions/global`, {
             headers: getHeaders()
         });
         await handleResponse(response);

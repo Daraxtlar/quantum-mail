@@ -71,6 +71,7 @@ function Inbox() {
     const [selectedMail, setSelectedMail] = useState(null);
     const [showCompose, setShowCompose] = useState(false);
     const [replyMail, setReplyMail] = useState(null);
+    const [initialToEmail, setInitialToEmail] = useState("");
 
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -83,6 +84,7 @@ function Inbox() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        setLoading(true);
         const handler = setTimeout(() => {
             loadEmails();
         }, 1000);
@@ -90,7 +92,6 @@ function Inbox() {
     }, [currentFolder, currentPage]);
 
     const loadEmails = async () => {
-        setLoading(true);
         try{
             const pageForBackend = currentPage - 1;
 
@@ -167,12 +168,14 @@ function Inbox() {
         }
     };
 
-    const openCompose = () => {
+    const openCompose = (email = "") => {
         setReplyMail(null);
+        setInitialToEmail(typeof email === "string" ? email : "");
         setShowCompose(true);
     };
 
     const replyToMail = (mail, type = "reply") => {
+        setInitialToEmail("");
         setReplyMail({ ...mail, _type: type });
         setShowCompose(true);
     };
@@ -180,6 +183,7 @@ function Inbox() {
     const closeCompose = () => {
         setShowCompose(false);
         setReplyMail(null);
+        setInitialToEmail("");
     };
 
     const currentMails = getCurrentMails();
@@ -219,6 +223,7 @@ function Inbox() {
                     userEmail={currentAccount || "user@quantummail.com"}
                     replyTo={replyMail}
                     folder={currentFolder}
+                    initialTo={initialToEmail}
                 />
             )}
         </div>

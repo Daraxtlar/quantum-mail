@@ -101,4 +101,9 @@ public class MailController {
         return ResponseEntity.ok(mailService.getSuggestedRecipients(senderEmail));
     }
 
+    @GetMapping("/suggestions/global")
+    public ResponseEntity<List<String>> getGlobalSuggestions() {
+        return ResponseEntity.ok(mailService.getGlobalSuggestedRecipients());
+    }
+
 }

@@ -13,9 +13,11 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import jakarta.mail.UIDFolder;
 
+import java.awt.print.Pageable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +67,7 @@ public class MailService {
             FetchProfile fp = new FetchProfile();
             fp.add(FetchProfile.Item.ENVELOPE);
             fp.add(UIDFolder.FetchProfileItem.UID);
+            fp.add(FetchProfile.Item.CONTENT_INFO);
             folder.fetch(messages, fp);
 
             for (int i = messages.length - 1; i >= 0; i--) {
@@ -118,7 +121,7 @@ public class MailService {
     }
 
     private String extractSnippet(Message message) {
-        try{
+        try {
             String rawText = "";
             if (message.isMimeType("text/plain")) {
                 rawText = message.getContent().toString();
@@ -126,7 +129,7 @@ public class MailService {
                 rawText = cleanHTML(message.getContent().toString());
             } else if (message.isMimeType("multipart/*")) {
                 Multipart mp = (Multipart) message.getContent();
-                for (int i = 0; i < mp.getCount(); i++){
+                for (int i = 0; i < mp.getCount(); i++) {
                     BodyPart part = mp.getBodyPart(i);
                     if (part.isMimeType("text/plain")) {
                         rawText = part.getContent().toString();
@@ -139,10 +142,9 @@ public class MailService {
             }
 
             String snippet = rawText.replaceAll("\\s+", " ").trim();
-
             return snippet.length() > 120 ? snippet.substring(0, 117) + "..." : snippet;
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             return "Nie udało się pobrać podglądu";
         }
     }
@@ -383,6 +385,10 @@ public class MailService {
 
     public List<String> getSuggestedRecipients(String senderEmail) {
         return mailRepository.findRecentRecipients(senderEmail);
+    }
+
+    public List<String> getGlobalSuggestedRecipients() {
+        return mailRepository.findGlobalRecentRecipients(PageRequest.of(0, 50));
     }
 
 }

@@ -3,16 +3,16 @@ import {X, Paperclip, Send, Trash2, Minus, Maximize2} from "lucide-react";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {mailService} from "../services/MailService.js";
 
-function ComposeMail({onClose, userEmail, replyTo, folder}) {
+function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
     const [senderEmail, setSenderEmail] = useState("lukasz78899@op.pl");
     const [suggestions, setSuggestions] = useState([]);
 
     const [to, setTo] = useState(
-        replyTo
+        initialTo || (replyTo
             ? replyTo._type === "reply"
                 ? replyTo.sender
                 : ""
-            : ""
+            : "")
     );
     const [subject, setSubject] = useState(
         replyTo
@@ -43,7 +43,7 @@ function ComposeMail({onClose, userEmail, replyTo, folder}) {
                 ? replyTo._type === "reply"
                     ? replyTo.sender
                     : ""
-                : ""
+                : initialTo || ""
         );
         setSubject(
             replyTo
@@ -58,7 +58,7 @@ function ComposeMail({onClose, userEmail, replyTo, folder}) {
                 : ""
         );
         setFiles([]);
-    }, [replyTo]);
+    }, [replyTo, initialTo]);
 
     const getTitle = (isMinimized = false) => {
         const maxLength = isMinimized ? 30 : Math.floor((size.width || 560) / 12);

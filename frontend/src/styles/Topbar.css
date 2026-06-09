@@ -66,3 +66,70 @@
     font-size: 26px;
     font-weight: 600;
 }
+
+
+.user-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+
+.topbar-user-dropdown {
+    position: absolute;
+    top: calc(100% + 15px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    background: var(--search-bg);
+    border: 1px solid var(--topbar-border);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+
+.dropdown-scroll-container {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+
+.dropdown-user-item {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.dropdown-user-item:hover {
+    background: var(--topbar-bg);
+    color: var(--topbar-text);
+}
+
+.dropdown-status {
+    padding: 16px;
+    text-align: center;
+    color: var(--search-placeholder);
+    font-size: 13px;
+}
+
+.dropdown-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--topbar-border);
+    border-radius: 999px;
+}
