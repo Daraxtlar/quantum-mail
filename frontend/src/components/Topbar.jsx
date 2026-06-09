@@ -7,6 +7,7 @@ import {
     Settings
 } from "lucide-react";
 import {useEffect, useState} from "react";
+import {Link} from "react-router-dom";
 
 function Topbar({onCompose, onSearch}){
     const [username, setUsername] = useState("");
@@ -49,9 +50,11 @@ function Topbar({onCompose, onSearch}){
             <div className={"topbar-right"}>
                 <span className={"username"}>{username}</span>
 
-                <button className={"topbar-icon-button"}>
-                    <Settings size={20} />
-                </button>
+                <Link to="/settings">
+                    <button className={"topbar-icon-button"}>
+                        <Settings size={20} />
+                    </button>
+                </Link>
             </div>
         </header>
     )

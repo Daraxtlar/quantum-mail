@@ -3,7 +3,7 @@ function AppearanceList() {
         <>
             <ul>
                 <li className={"setting"}>
-                    Draft auto save duration
+                    this is appearance setting
                 </li>
                 <li className={"setting"}>
                     Inbox auto refresh duration

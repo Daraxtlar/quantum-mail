@@ -1,11 +1,14 @@
 import EmailAccount from "./EmailAccount.jsx";
 import "../styles/Sidebar.css";
+import AddAddressModal from "./AddAccountWizard.jsx";
 import {useState} from "react";
+import AddAccountWizard from "./AddAccountWizard.jsx";
 
 
 function Sidebar({accounts= [], onFolderClick}) {
     const [expandedAccount, setExpandedAccount] = useState(null);
     const [activeFolder, setActiveFolder] = useState(null);
+    const [showAddModal, setShowAddModal] = useState(false)
 
     const handleAccountClick = (accountId) => {
         setExpandedAccount(expandedAccount === accountId ? null : accountId);
@@ -21,6 +24,15 @@ function Sidebar({accounts= [], onFolderClick}) {
 
     return (
         <aside className={"sidebar"}>
+            <button onClick={() => setShowAddModal(true)}>
+                Add Account
+            </button>
+
+            {showAddModal && (
+                <AddAccountWizard
+                    onClose={() => setShowAddModal(false)}
+                />
+            )}
             <div className={"accounts-wrapper"}>
                 {accounts.map((account) => (
                     <EmailAccount
@@ -32,6 +44,10 @@ function Sidebar({accounts= [], onFolderClick}) {
                         onFolderClick={handleFolderClick}
                     />
                 ))}
+
+                {
+                    showAddModal && <AddAddressModal/>
+                }
             </div>
         </aside>
     );

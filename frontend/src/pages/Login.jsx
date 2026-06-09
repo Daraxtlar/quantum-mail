@@ -2,7 +2,7 @@ import "react";
 import {Link} from 'react-router-dom';
 import "../styles/Login.css";
 import {useState} from "react";
-import Modial from "../components/ResetPasswordPopup.jsx"
+import Modial from "../components/ResetPasswordModal.jsx"
 import { useNavigate } from "react-router-dom";
 import Alert from "../components/BadPasswordAlert.jsx";
 
