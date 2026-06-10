@@ -1,7 +1,7 @@
 import "../styles/ResetPasswordPopup.css";
 import {X} from "lucide-react";
 
-function ResetPasswordPopup() {
+function ResetPasswordModal() {
     return (
         <div className="popup-overlay">
             <div className="popup-container">
@@ -32,4 +32,4 @@ function ResetPasswordPopup() {
     );
 }
 
-export default ResetPasswordPopup
+export default ResetPasswordModal

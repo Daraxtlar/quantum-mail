@@ -3,7 +3,7 @@ function ComponentsList() {
         <>
             <ul>
                 <li className={"setting"}>
-                    Draft auto save duration
+                    this is component setting
                 </li>
                 <li className={"setting"}>
                     Inbox auto refresh duration

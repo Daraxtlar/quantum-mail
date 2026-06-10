@@ -3,7 +3,7 @@ function IntegrationsList() {
         <>
             <ul>
                 <li className={"setting"}>
-                    Draft auto save duration
+                    this is integration setting
                 </li>
                 <li className={"setting"}>
                     Inbox auto refresh duration
