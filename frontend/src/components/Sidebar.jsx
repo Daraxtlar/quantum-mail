@@ -1,6 +1,5 @@
 import EmailAccount from "./EmailAccount.jsx";
 import "../styles/Sidebar.css";
-import AddAddressModal from "./AddAccountWizard.jsx";
 import {useState} from "react";
 import AddAccountWizard from "./AddAccountWizard.jsx";
 
@@ -21,6 +20,10 @@ function Sidebar({accounts= [], onFolderClick, onAccountAdded}) {
         }
     }
 
+    const closeModal = () =>{
+        setShowAddModal(false);
+    }
+
 
     return (
         <aside className={"sidebar"}>
@@ -30,7 +33,7 @@ function Sidebar({accounts= [], onFolderClick, onAccountAdded}) {
 
             {showAddModal && (
                 <AddAccountWizard
-                    onClose={() => setShowAddModal(false)}
+                    onClose={closeModal}
                     onAccountAdded={onAccountAdded}
                 />
             )}
@@ -46,9 +49,6 @@ function Sidebar({accounts= [], onFolderClick, onAccountAdded}) {
                     />
                 ))}
 
-                {
-                    showAddModal && <AddAddressModal/>
-                }
             </div>
         </aside>
     );

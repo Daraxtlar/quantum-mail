@@ -2,7 +2,6 @@ import { useState } from "react";
 import { X, Mail, Settings } from "lucide-react";
 
 import "../styles/AddAccountWizard.css";
-import emailAccount from "./EmailAccount.jsx";
 import {EmailAccountService} from "../services/EmailAccountService.js";
 
 function AddAccountWizard({ onClose, onAccountAdded }) {
@@ -244,7 +243,7 @@ function AddAccountWizard({ onClose, onAccountAdded }) {
                             className="primary-button"
                             onClick={() =>{
                                 if (onAccountAdded) onAccountAdded()
-                                onClose();
+                                onClose()
                             }}
                         >
                             Finish
