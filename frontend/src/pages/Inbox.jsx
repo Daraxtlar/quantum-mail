@@ -122,7 +122,7 @@ function Inbox() {
                 mailService.syncEmails(currentAccount, currentFolder)
                     .then(async () => {
                         console.log("Sync completed, reloading emails...");
-                        const updatedResponse = await mailService.fetchEmails(currentAccount ,currentFolder, pageForBackend, 20);
+                        const updatedResponse = await mailService.fetchEmails(currentAccount ,currentFolder, pageForBackend, 20, searchQuery || "");
                         updateMailState(updatedResponse);
                     })
                     .catch (error => console.error("Error during sync:", error));
