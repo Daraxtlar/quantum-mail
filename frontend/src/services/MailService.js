@@ -72,5 +72,4 @@ export const mailService = {
         });
         return response.data;
     }
-
 };

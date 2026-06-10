@@ -6,6 +6,8 @@ import com.daraxtlar.quantummail.repository.EmailAddressRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class EmailAddressService {
 
@@ -33,5 +35,9 @@ public class EmailAddressService {
         account.setSmtpSslEnabled(dto.getSmtpSslEnabled() != null ? dto.getSmtpSslEnabled() : true);
 
         return emailAddressRepository.save(account);
+    }
+
+    public List<EmailAddress> getAccountsByUserId(Long userId) {
+        return emailAddressRepository.findByUserId(userId);
     }
 }

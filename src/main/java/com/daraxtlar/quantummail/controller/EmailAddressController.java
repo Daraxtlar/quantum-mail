@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -33,7 +34,7 @@ public class EmailAddressController {
             EmailAddress savedAccount = emailAddressService.addAccount(userId, dto);
 
             return ResponseEntity.ok(Map.of(
-                    "message", "Email sent successfully",
+                    "message", "Account added successfully",
                     "accountId", savedAccount.getId(),
                     "email", savedAccount.getEmailAddress()
             ));
@@ -43,6 +44,22 @@ public class EmailAddressController {
             return ResponseEntity.internalServerError().body(Map.of("error", "An unexpected error occurred"));
         }
 
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<?> getEmailAccounts(
+            @RequestHeader("Authorization") String bearerToken
+    ) {
+        try {
+            String token = bearerToken.substring(7);
+            Long userId = jwtService.getUserIdFromToken(token);
+
+            List<EmailAddress> accounts = emailAddressService.getAccountsByUserId(userId);
+
+            return ResponseEntity.ok(accounts);
+        }catch (Exception e){
+            return ResponseEntity.internalServerError().body(Map.of("error", "An unexpected error occurred"));
+        }
     }
 
 }
