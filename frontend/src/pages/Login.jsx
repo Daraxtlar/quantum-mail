@@ -5,6 +5,7 @@ import {useState} from "react";
 import Modial from "../components/ResetPasswordModal.jsx"
 import { useNavigate } from "react-router-dom";
 import Alert from "../components/BadPasswordAlert.jsx";
+import {authService} from "../services/AuthService.js";
 
 function Login() {
     const [showModal, setShowModal] = useState(false)
@@ -16,22 +17,10 @@ function Login() {
     async function handleSubmit(e) {
         e.preventDefault()
 
-        const response = await fetch("http://localhost:8080/api/auth/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ username, password })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-
-            localStorage.setItem("user", JSON.stringify(data));
-
+        try {
+            await authService.login(username, password);
             navigate("/inbox");
-        }
-        else{
+        }catch (err){
             setShowAlert(true);
         }
     }

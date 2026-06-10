@@ -66,11 +66,12 @@ const accounts = [
 ];
 
 function Inbox() {
-    const [currentAccount, setCurrentAccount] = useState(null);
+    const [currentAccount, setCurrentAccount] = useState("lukasz78899@op.pl");
     const [currentFolder, setCurrentFolder] = useState("INBOX");
     const [selectedMail, setSelectedMail] = useState(null);
     const [showCompose, setShowCompose] = useState(false);
     const [replyMail, setReplyMail] = useState(null);
+    const [initialToEmail, setInitialToEmail] = useState("");
 
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -83,37 +84,51 @@ function Inbox() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const handler = setTimeout(() => {
+        if (currentAccount){
             loadEmails();
-        }, 1000);
-        return () => clearTimeout(handler);
-    }, [currentFolder, currentPage]);
+        }
+    }, [currentAccount, currentFolder, currentPage, searchQuery]);
+
+    const updateMailState = (response) => {
+        const formattedMails = response.emails.map(email => ({
+            id: email.uid,
+            folderName: email.folderName,
+            sender: email.sender || "Unknown",
+            email: email.sender || "",
+            subject: email.subject || "(no subject)",
+            preview: email.snippet || "",
+            body: email.content || "",
+            date: formatDate(email.sentDate),
+            read: email.read || false,
+            attachments: email.attachments || [],
+            color: !email.read ? "#7CFF5B" : undefined,
+        }));
+        setMails(formattedMails);
+        setTotalPages(response.totalPages);
+        setTotalCount(response.totalCount);
+    }
 
     const loadEmails = async () => {
-        setLoading(true);
         try{
             const pageForBackend = currentPage - 1;
 
-            const response = await mailService.fetchEmails(currentFolder, pageForBackend, 20);
+            if (mails.length === 0) setLoading(true);
 
-            const formattedMails = response.emails.map(email => ({
-                id: email.id,
-                sender: email.from || "Unknown",
-                email: email.from || "",
-                subject: email.subject || "(no subject)",
-                preview: email.snippet || "",
-                body: email.content || "",
-                date: formatDate(email.sentDate),
-                read: email.read || false,
-                attachments: email.attachments || [],
-                color: !email.read ? "#7CFF5B" : undefined,
-            }));
-            setMails(formattedMails);
-            setTotalPages(response.totalPages);
-            setTotalCount(response.totalCount);
+            const response = await mailService.fetchEmails(currentAccount ,currentFolder, pageForBackend, 20, searchQuery);
+            updateMailState(response);
+            setLoading(false);
+
+            if (currentPage === 1 && (!searchQuery || searchQuery.trim() === "")){
+                mailService.syncEmails(currentAccount, currentFolder)
+                    .then(async () => {
+                        console.log("Sync completed, reloading emails...");
+                        const updatedResponse = await mailService.fetchEmails(currentAccount ,currentFolder, pageForBackend, 20, searchQuery || "");
+                        updateMailState(updatedResponse);
+                    })
+                    .catch (error => console.error("Error during sync:", error));
+            }
         }catch (error){
             console.error("Error fetching emails:", error);
-        }finally {
             setLoading(false);
         }
     };
@@ -135,16 +150,20 @@ function Inbox() {
     const handleMailClick = async (mail) => {
         setLoading(true);
         try{
-            const fullMail = await mailService.fetchEmailDetails(currentFolder, mail.id);
+            const targetFolder = mail.folderName || currentFolder;
+            const fullMail = await mailService.fetchEmailDetails(currentAccount, targetFolder, mail.id);
 
             const formattedDetail = {
                 ...fullMail,
                 sender: fullMail.from,
                 content: fullMail.content,
                 date: formatDate(fullMail.sentDate),
-                color: mail.color
+                color: undefined
             };
             setSelectedMail(formattedDetail);
+
+            setMails(prevMails => prevMails.map(m => m.id === mail.id ? {...m, read: true, color: undefined} : m));
+
         }catch (error){
             console.error("Error fetching email details:", error);
             alert("Failed to load email details. Please try again.");
@@ -167,16 +186,14 @@ function Inbox() {
         }
     };
 
-    const handleSendMail = () => {
-        closeCompose();
-    };
-
-    const openCompose = () => {
+    const openCompose = (email = "") => {
         setReplyMail(null);
+        setInitialToEmail(typeof email === "string" ? email : "");
         setShowCompose(true);
     };
 
     const replyToMail = (mail, type = "reply") => {
+        setInitialToEmail("");
         setReplyMail({ ...mail, _type: type });
         setShowCompose(true);
     };
@@ -184,6 +201,7 @@ function Inbox() {
     const closeCompose = () => {
         setShowCompose(false);
         setReplyMail(null);
+        setInitialToEmail("");
     };
 
     const currentMails = getCurrentMails();
@@ -220,9 +238,10 @@ function Inbox() {
             {showCompose && (
                 <ComposeMail
                     onClose={closeCompose}
-                    onSend={handleSendMail}
                     userEmail={currentAccount || "user@quantummail.com"}
                     replyTo={replyMail}
+                    folder={currentFolder}
+                    initialTo={initialToEmail}
                 />
             )}
         </div>

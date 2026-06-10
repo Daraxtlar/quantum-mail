@@ -1,0 +1,614 @@
+:root {
+    --topbar-bg: #140d2f;
+    --topbar-border: rgba(255, 255, 255, 0.08);
+    --topbar-text: white;
+    --search-bg: #2b1464;
+    --search-icon: rgba(255, 255, 255, 0.7);
+    --search-placeholder: rgba(255, 255, 255, 0.5);
+    --body-bg: #0b0b14;
+    --sidebar-bg: linear-gradient(180deg, #130d33, #302050);
+    --sidebar-text: white;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: rgba(128, 96, 255, 0.35);
+    --badge-bg: red;
+    --badge-text: white;
+
+    --panel-bg: #0d0d1a;
+    --accent-blue: #1540ff;
+
+    --text-primary: white;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-date: rgba(255, 255, 255, 0.6);
+    --text-body: rgba(255, 255, 255, 0.9);
+
+    --border-low: rgba(255, 255, 255, 0.06);
+    --border-medium: rgba(255, 255, 255, 0.08);
+    --border-high: rgba(255, 255, 255, 0.1);
+
+    --bg-hover-light: rgba(255, 255, 255, 0.1);
+    --bg-layer-low: rgba(255, 255, 255, 0.03);
+    --bg-layer-medium: rgba(255, 255, 255, 0.05);
+    --bg-layer-dark: rgba(0, 0, 0, 0.3);
+
+    --mail-section-bg: linear-gradient(90deg, #000000, #111111);
+    --mail-toolbar-bg: #3b1b8d;
+
+    --text-preview: rgba(255, 255, 255, 0.45);
+    --text-loading: #666;
+
+    --border-ultra-low: rgba(255, 255, 255, 0.04);
+    --bg-pagination: rgba(0, 0, 0, 0.2);
+
+    --login-bg: linear-gradient(135deg, #0a0f4d, #22255e, #3a3a4d);
+    --login-card-bg: #05071f;
+    --login-card-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    --login-input-bg: black;
+    --login-divider: #555;
+    --login-link: #2f5dff;
+    --accent-blue-hover: #2a54ff;
+
+    --popup-bg: #03003e;
+    --countdown-bg: #0c00ff;
+    --popup-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+
+    --modal-overlay: rgba(0, 0, 0, 0.3);
+    --modal-card-bg: #4f46e5;
+    --modal-text: white;
+    --modal-input-bg: white;
+    --modal-input-text: #140d2f;
+    --modal-btn-bg: white;
+    --modal-btn-text: #4f46e5;
+    --modal-btn-hover: #e5e7eb;
+    --modal-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+
+    --compose-bg: #0d0d1a;
+    --compose-header-bg: #1a1a2e;
+    --compose-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    --compose-minimized-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
+    --attachment-tag-bg: rgba(21, 64, 255, 0.2);
+    --input-placeholder: rgba(255, 255, 255, 0.3);
+
+    --settings-bg: linear-gradient(135deg, #0a0f4d, #22255e, #3a3a4d);
+    --settings-search-bg: #1c0c4f;
+}
+
+[data-theme='light'] {
+    --topbar-bg: #ffffff;
+    --topbar-border: rgba(0, 0, 0, 0.08);
+    --topbar-text: #140d2f;
+    --search-bg: #f0f2f5;
+    --search-icon: rgba(20, 13, 47, 0.6);
+    --search-placeholder: rgba(20, 13, 47, 0.4);
+    --body-bg: #f0f2f5;
+    --sidebar-bg: #f8f9fa;
+    --sidebar-text: #140d2f;
+    --sidebar-hover: rgba(20, 13, 47, 0.05);
+    --sidebar-active: rgba(128, 96, 255, 0.2);
+    --badge-bg: #ff3b30;
+    --badge-text: white;
+
+    --panel-bg: #ffffff;
+    --accent-blue: #1540ff;
+
+    --text-primary: #140d2f;
+    --text-secondary: rgba(20, 13, 47, 0.7);
+    --text-muted: rgba(20, 13, 47, 0.5);
+    --text-date: rgba(20, 13, 47, 0.6);
+    --text-body: rgba(20, 13, 47, 0.9);
+
+    --border-low: rgba(20, 13, 47, 0.06);
+    --border-medium: rgba(20, 13, 47, 0.08);
+    --border-high: rgba(20, 13, 47, 0.1);
+
+    --bg-hover-light: rgba(20, 13, 47, 0.08);
+    --bg-layer-low: rgba(20, 13, 47, 0.03);
+    --bg-layer-medium: rgba(20, 13, 47, 0.05);
+    --bg-layer-dark: rgba(20, 13, 47, 0.06);
+
+    --mail-section-bg: #ffffff;
+    --mail-toolbar-bg: #f1edfa;
+
+    --text-preview: rgba(20, 13, 47, 0.55);
+    --text-loading: #999;
+
+    --border-ultra-low: rgba(20, 13, 47, 0.04);
+    --bg-pagination: rgba(20, 13, 47, 0.03);
+
+    --login-bg: linear-gradient(135deg, #e6e9f8, #f0f2f5, #e0e5f5); /* Łagodny, jasny gradient fioletowo-szary */
+    --login-card-bg: #ffffff;
+    --login-card-shadow: 0 10px 40px rgba(20, 13, 47, 0.08);
+    --login-input-bg: #f0f2f5;
+    --login-divider: #ccc;
+    --login-link: #1540ff;
+    --accent-blue-hover: #0026cb;
+
+    --popup-bg: #ffffff;
+    --countdown-bg: #1540ff;
+    --popup-shadow: 0 10px 30px rgba(20, 13, 47, 0.15);
+
+    --modal-overlay: rgba(20, 13, 47, 0.2);
+    --modal-card-bg: #ffffff;
+    --modal-text: #140d2f;
+    --modal-input-bg: #f0f2f5;
+    --modal-input-text: #140d2f;
+    --modal-btn-bg: #1540ff;
+    --modal-btn-text: white;
+    --modal-btn-hover: #0026cb;
+    --modal-shadow: 0 20px 40px rgba(20, 13, 47, 0.15);
+
+    --compose-bg: #ffffff;
+    --compose-header-bg: #f5f6f9;
+    --compose-shadow: 0 -4px 24px rgba(20, 13, 47, 0.12), 0 0 0 1px rgba(20, 13, 47, 0.08);
+    --compose-minimized-shadow: 0 -2px 12px rgba(20, 13, 47, 0.1);
+    --attachment-tag-bg: rgba(21, 64, 255, 0.1);
+    --input-placeholder: rgba(20, 13, 47, 0.4);
+
+    --settings-bg: linear-gradient(135deg, #e6e9f8, #f0f2f5, #e0e5f5);
+    --settings-search-bg: #e2dff5;
+}
+
+[data-theme='emerald-dark'] {
+    --topbar-bg: #102019;
+    --topbar-border: rgba(255, 255, 255, 0.08);
+    --topbar-text: #ffffff;
+
+    --search-bg: #17342b;
+    --search-icon: rgba(255, 255, 255, 0.7);
+    --search-placeholder: rgba(255, 255, 255, 0.45);
+
+    --body-bg: #0b1210;
+
+    --sidebar-bg: linear-gradient(180deg, #10241d, #163328);
+    --sidebar-text: #ffffff;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: rgba(16, 185, 129, 0.25);
+
+    --badge-bg: #ef4444;
+    --badge-text: #ffffff;
+
+    --panel-bg: #121b19;
+
+    --accent-blue: #10b981;
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.72);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-date: rgba(255, 255, 255, 0.6);
+    --text-body: rgba(255, 255, 255, 0.9);
+
+    --border-low: rgba(255, 255, 255, 0.05);
+    --border-medium: rgba(255, 255, 255, 0.08);
+    --border-high: rgba(255, 255, 255, 0.12);
+
+    --bg-hover-light: rgba(255, 255, 255, 0.08);
+    --bg-layer-low: rgba(255, 255, 255, 0.03);
+    --bg-layer-medium: rgba(255, 255, 255, 0.05);
+    --bg-layer-dark: rgba(0, 0, 0, 0.35);
+
+    --mail-section-bg: linear-gradient(90deg, #0b1411, #14211d);
+    --mail-toolbar-bg: #1b3d34;
+
+    --text-preview: rgba(255, 255, 255, 0.45);
+    --text-loading: #7d8b85;
+
+    --border-ultra-low: rgba(255, 255, 255, 0.04);
+    --bg-pagination: rgba(0, 0, 0, 0.25);
+
+    --login-bg: linear-gradient(
+            135deg,
+            #0b1210,
+            #143126,
+            #1f4d3d
+    );
+
+    --login-card-bg: #121b19;
+    --login-card-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+
+    --login-input-bg: #183027;
+    --login-divider: #3f5a50;
+
+    --login-link: #10b981;
+    --accent-blue-hover: #059669;
+
+    --popup-bg: #121b19;
+    --countdown-bg: #10b981;
+
+    --popup-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+
+    --modal-overlay: rgba(0, 0, 0, 0.45);
+
+    --modal-card-bg: #17463a;
+    --modal-text: #ffffff;
+
+    --modal-input-bg: #ffffff;
+    --modal-input-text: #102019;
+
+    --modal-btn-bg: #10b981;
+    --modal-btn-text: #ffffff;
+    --modal-btn-hover: #059669;
+
+    --modal-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+
+    --compose-bg: #121b19;
+    --compose-header-bg: #1a2824;
+
+    --compose-shadow:
+            0 -4px 24px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+
+    --compose-minimized-shadow:
+            0 -2px 12px rgba(0, 0, 0, 0.4);
+
+    --attachment-tag-bg: rgba(16, 185, 129, 0.18);
+
+    --input-placeholder: rgba(255, 255, 255, 0.35);
+
+    --settings-bg: linear-gradient(
+            135deg,
+            #0b1210,
+            #143126,
+            #1f4d3d
+    );
+
+    --settings-search-bg: #183027;
+}
+
+[data-theme='midnight'] {
+    --topbar-bg: #0d1628;
+    --topbar-border: rgba(255, 255, 255, 0.08);
+    --topbar-text: #ffffff;
+
+    --search-bg: #1b2944;
+    --search-icon: rgba(255, 255, 255, 0.7);
+    --search-placeholder: rgba(255, 255, 255, 0.45);
+
+    --body-bg: #08101f;
+
+    --sidebar-bg: linear-gradient(180deg, #0d1c35, #15294d);
+    --sidebar-text: #ffffff;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: rgba(59, 130, 246, 0.25);
+
+    --badge-bg: #ef4444;
+    --badge-text: #ffffff;
+
+    --panel-bg: #101b31;
+
+    --accent-blue: #3b82f6;
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.72);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-date: rgba(255, 255, 255, 0.6);
+    --text-body: rgba(255, 255, 255, 0.9);
+
+    --border-low: rgba(255, 255, 255, 0.05);
+    --border-medium: rgba(255, 255, 255, 0.08);
+    --border-high: rgba(255, 255, 255, 0.12);
+
+    --bg-hover-light: rgba(255, 255, 255, 0.08);
+    --bg-layer-low: rgba(255, 255, 255, 0.03);
+    --bg-layer-medium: rgba(255, 255, 255, 0.05);
+    --bg-layer-dark: rgba(0, 0, 0, 0.35);
+
+    --mail-section-bg: linear-gradient(90deg, #0a1224, #13203b);
+    --mail-toolbar-bg: #17305d;
+
+    --text-preview: rgba(255, 255, 255, 0.45);
+    --text-loading: #7c8595;
+
+    --border-ultra-low: rgba(255, 255, 255, 0.04);
+    --bg-pagination: rgba(0, 0, 0, 0.25);
+
+    --login-bg: linear-gradient(
+            135deg,
+            #08101f,
+            #13203b,
+            #1b335e
+    );
+
+    --login-card-bg: #101b31;
+    --login-card-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+    --login-input-bg: #152646;
+    --login-divider: #42506b;
+
+    --login-link: #3b82f6;
+    --accent-blue-hover: #2563eb;
+
+    --popup-bg: #101b31;
+    --countdown-bg: #3b82f6;
+    --popup-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+
+    --modal-overlay: rgba(0, 0, 0, 0.45);
+    --modal-card-bg: #17305d;
+    --modal-text: #ffffff;
+
+    --modal-input-bg: #ffffff;
+    --modal-input-text: #0d1628;
+
+    --modal-btn-bg: #3b82f6;
+    --modal-btn-text: #ffffff;
+    --modal-btn-hover: #2563eb;
+
+    --modal-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+
+    --compose-bg: #101b31;
+    --compose-header-bg: #17243d;
+
+    --compose-shadow:
+            0 -4px 24px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+
+    --compose-minimized-shadow:
+            0 -2px 12px rgba(0, 0, 0, 0.4);
+
+    --attachment-tag-bg: rgba(59, 130, 246, 0.18);
+
+    --input-placeholder: rgba(255, 255, 255, 0.35);
+
+    --settings-bg: linear-gradient(
+            135deg,
+            #08101f,
+            #13203b,
+            #1b335e
+    );
+
+    --settings-search-bg: #152646;
+}
+
+[data-theme='carbon'] {
+    --topbar-bg: #111111;
+    --topbar-border: rgba(255, 255, 255, 0.08);
+    --topbar-text: #ffffff;
+
+    --search-bg: #232323;
+    --search-icon: rgba(255, 255, 255, 0.7);
+    --search-placeholder: rgba(255, 255, 255, 0.45);
+
+    --body-bg: #0a0a0a;
+
+    --sidebar-bg: linear-gradient(
+            180deg,
+            #161616,
+            #222222
+    );
+
+    --sidebar-text: #ffffff;
+    --sidebar-hover: rgba(255, 255, 255, 0.05);
+    --sidebar-active: rgba(96, 165, 250, 0.22);
+
+    --badge-bg: #ef4444;
+    --badge-text: #ffffff;
+
+    --panel-bg: #171717;
+
+    --accent-blue: #60a5fa;
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.72);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-date: rgba(255, 255, 255, 0.6);
+    --text-body: rgba(255, 255, 255, 0.9);
+
+    --border-low: rgba(255, 255, 255, 0.05);
+    --border-medium: rgba(255, 255, 255, 0.08);
+    --border-high: rgba(255, 255, 255, 0.12);
+
+    --bg-hover-light: rgba(255, 255, 255, 0.08);
+    --bg-layer-low: rgba(255, 255, 255, 0.03);
+    --bg-layer-medium: rgba(255, 255, 255, 0.05);
+    --bg-layer-dark: rgba(0, 0, 0, 0.4);
+
+    --mail-section-bg: linear-gradient(
+            90deg,
+            #0c0c0c,
+            #171717
+    );
+
+    --mail-toolbar-bg: #252525;
+
+    --text-preview: rgba(255, 255, 255, 0.45);
+    --text-loading: #8a8a8a;
+
+    --border-ultra-low: rgba(255, 255, 255, 0.04);
+    --bg-pagination: rgba(0, 0, 0, 0.25);
+
+    --login-bg: linear-gradient(
+            135deg,
+            #0a0a0a,
+            #161616,
+            #242424
+    );
+
+    --login-card-bg: #171717;
+
+    --login-card-shadow:
+            0 10px 40px rgba(0, 0, 0, 0.65);
+
+    --login-input-bg: #222222;
+    --login-divider: #444444;
+
+    --login-link: #60a5fa;
+    --accent-blue-hover: #3b82f6;
+
+    --popup-bg: #171717;
+
+    --countdown-bg: #60a5fa;
+
+    --popup-shadow:
+            0 10px 30px rgba(0, 0, 0, 0.45);
+
+    --modal-overlay: rgba(0, 0, 0, 0.55);
+
+    --modal-card-bg: #202020;
+    --modal-text: #ffffff;
+
+    --modal-input-bg: #ffffff;
+    --modal-input-text: #111111;
+
+    --modal-btn-bg: #60a5fa;
+    --modal-btn-text: #ffffff;
+    --modal-btn-hover: #3b82f6;
+
+    --modal-shadow:
+            0 20px 40px rgba(0, 0, 0, 0.55);
+
+    --compose-bg: #171717;
+    --compose-header-bg: #202020;
+
+    --compose-shadow:
+            0 -4px 24px rgba(0, 0, 0, 0.55),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+
+    --compose-minimized-shadow:
+            0 -2px 12px rgba(0, 0, 0, 0.45);
+
+    --attachment-tag-bg:
+            rgba(96, 165, 250, 0.18);
+
+    --input-placeholder:
+            rgba(255, 255, 255, 0.35);
+
+    --settings-bg: linear-gradient(
+            135deg,
+            #0a0a0a,
+            #161616,
+            #242424
+    );
+
+    --settings-search-bg: #222222;
+}
+
+[data-theme='sunset-dark'] {
+    --topbar-bg: #1a1024;
+    --topbar-border: rgba(255, 255, 255, 0.08);
+    --topbar-text: #ffffff;
+
+    --search-bg: #2b1f3d;
+    --search-icon: rgba(255, 255, 255, 0.7);
+    --search-placeholder: rgba(255, 255, 255, 0.45);
+
+    --body-bg: #100d17;
+
+    --sidebar-bg: linear-gradient(
+            180deg,
+            #241634,
+            #382042
+    );
+
+    --sidebar-text: #ffffff;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: rgba(255, 122, 24, 0.25);
+
+    --badge-bg: #ef4444;
+    --badge-text: #ffffff;
+
+    --panel-bg: #181420;
+
+    --accent-blue: #ff7a18;
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.72);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-date: rgba(255, 255, 255, 0.6);
+    --text-body: rgba(255, 255, 255, 0.9);
+
+    --border-low: rgba(255, 255, 255, 0.05);
+    --border-medium: rgba(255, 255, 255, 0.08);
+    --border-high: rgba(255, 255, 255, 0.12);
+
+    --bg-hover-light: rgba(255, 255, 255, 0.08);
+    --bg-layer-low: rgba(255, 255, 255, 0.03);
+    --bg-layer-medium: rgba(255, 255, 255, 0.05);
+    --bg-layer-dark: rgba(0, 0, 0, 0.35);
+
+    --mail-section-bg: linear-gradient(
+            90deg,
+            #120d18,
+            #20162c
+    );
+
+    --mail-toolbar-bg: #4a235a;
+
+    --text-preview: rgba(255, 255, 255, 0.45);
+    --text-loading: #8a7e92;
+
+    --border-ultra-low: rgba(255, 255, 255, 0.04);
+    --bg-pagination: rgba(0, 0, 0, 0.25);
+
+    --login-bg: linear-gradient(
+            135deg,
+            #100d17,
+            #241634,
+            #4d2b3d
+    );
+
+    --login-card-bg: #181420;
+
+    --login-card-shadow:
+            0 10px 40px rgba(0, 0, 0, 0.55);
+
+    --login-input-bg: #2a2035;
+    --login-divider: #53485f;
+
+    --login-link: #ff7a18;
+    --accent-blue-hover: #ea6500;
+
+    --popup-bg: #181420;
+
+    --countdown-bg: #ff7a18;
+
+    --popup-shadow:
+            0 10px 30px rgba(0, 0, 0, 0.4);
+
+    --modal-overlay: rgba(0, 0, 0, 0.45);
+
+    --modal-card-bg: #382042;
+    --modal-text: #ffffff;
+
+    --modal-input-bg: #ffffff;
+    --modal-input-text: #1a1024;
+
+    --modal-btn-bg: #ff7a18;
+    --modal-btn-text: #ffffff;
+    --modal-btn-hover: #ea6500;
+
+    --modal-shadow:
+            0 20px 40px rgba(0, 0, 0, 0.5);
+
+    --compose-bg: #181420;
+    --compose-header-bg: #231b30;
+
+    --compose-shadow:
+            0 -4px 24px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+
+    --compose-minimized-shadow:
+            0 -2px 12px rgba(0, 0, 0, 0.4);
+
+    --attachment-tag-bg:
+            rgba(255, 122, 24, 0.18);
+
+    --input-placeholder:
+            rgba(255, 255, 255, 0.35);
+
+    --settings-bg: linear-gradient(
+            135deg,
+            #100d17,
+            #241634,
+            #4d2b3d
+    );
+
+    --settings-search-bg: #2a2035;
+}
+
+[data-font='sans'] {
+    --font-family: Arial, Helvetica, sans-serif;
+}
+[data-font='serif'] {
+    --font-family: 'Georgia', Cambria, serif;
+}
+[data-font='mono'] {
+    --font-family: 'Courier New', Courier, monospace;
+}

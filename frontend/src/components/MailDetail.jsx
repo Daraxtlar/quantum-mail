@@ -11,6 +11,8 @@ function MailDetail({mail, onBack, onReply, folder}) {
     const prepareHtml = (rawHtml) => {
         if (!rawHtml) return "";
 
+        const token = localStorage.getItem('token');
+
         let processed = DOMPurify.sanitize(rawHtml, {
             ADD_TAGS: ["style", "meta"],
             ADD_ATTR: ["target", "style", "cid", "src"],
@@ -19,7 +21,7 @@ function MailDetail({mail, onBack, onReply, folder}) {
 
         processed = processed.replace(/src=['"]cid:([^'"]+)['"]/gi, (match, cidName) => {
             const safeCid = encodeURIComponent(cidName);
-            return `src="http://localhost:8080/api/mails/${folder}/${mail.id}/attachments/${safeCid}"`;
+            return `src="http://localhost:8080/api/mails/${folder}/${mail.id}/attachments/${safeCid}?token=${token}"`;
         });
 
         processed = processed.replace(/data-src=/gi, 'src=');
@@ -51,7 +53,8 @@ function MailDetail({mail, onBack, onReply, folder}) {
 
 
     const handleDownload = (fileName) => {
-        window.open(`http://localhost:8080/api/mails/${folder}/${mail.id}/attachments/${fileName}?download=true`, "_blank");
+        const token = localStorage.getItem('token');
+        window.open(`http://localhost:8080/api/mails/${folder}/${mail.id}/attachments/${fileName}?download=true&token=${token}`, "_blank");
     }
 
     return (

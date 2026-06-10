@@ -1,16 +1,28 @@
 package com.daraxtlar.quantummail.service;
 
+import com.daraxtlar.quantummail.entity.ImapMail;
 import com.daraxtlar.quantummail.model.Attachment;
 import com.daraxtlar.quantummail.model.EmailMessage;
+import com.daraxtlar.quantummail.repository.ImapMailRepository;
+import com.daraxtlar.quantummail.repository.MailRepository;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jsoup.Jsoup;
+import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.email.EmailBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import jakarta.mail.UIDFolder;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 @Service
@@ -30,63 +42,94 @@ public class MailService {
     @Value("${email.account.imap.ssl}")
     private boolean imapSsl;
 
-    private Store store;
+    @Autowired
+    private MailRepository mailRepository;
+
+    @Autowired
+    private ImapMailRepository imapMailRepository;
+
+    private final ThreadLocal<Store> threadLocalStore = new ThreadLocal<>();
+
+    private final Set<String> activeSyncs = ConcurrentHashMap.newKeySet();
 
 
-    public List<EmailMessage> fetchEmails(String folderName, int page, int size) {
+    public void syncFolderFromImap(String accountEmail ,String folderName) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
-        List<EmailMessage> emails = new ArrayList<>();
+
+        String syncKey = accountEmail + ":" + folderToUse;
+        if (!activeSyncs.add(syncKey)) {
+            System.out.println("[SYNC BLOCKED] Synchronizacja dla " + syncKey + " już trwa. Ignoruję duplikat żądania.");
+            return;
+        }
+
         Folder folder = null;
 
         try{
             getConnectedStore();
-            folder = store.getFolder(folderToUse);
+            folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
 
             int totalMessages = folder.getMessageCount();
-            int end = totalMessages - (page * size);
-            int start = Math.max(1, end-size + 1);
+            if (totalMessages == 0) return;
 
-            if (end <= 0) return emails;
+            long localCount = imapMailRepository.countByAccountEmailAndFolderName(accountEmail, folderToUse.toUpperCase());
 
-            Message[] messages = folder.getMessages(start, end);
+            int start = Math.max(1, (int) localCount - 15);
+
+            if (start > totalMessages) {
+                start = Math.max(1, totalMessages - 10);
+            }
+
+            System.out.println("[SYNC] Folder: " + folderToUse + " | Serwer: " + totalMessages + " | Baza: " + localCount + " | Sprawdzam od: " + start);
+
+            Message[] messages = folder.getMessages(start, totalMessages);
             FetchProfile fp = new FetchProfile();
             fp.add(FetchProfile.Item.ENVELOPE);
             fp.add(UIDFolder.FetchProfileItem.UID);
+            fp.add(FetchProfile.Item.CONTENT_INFO);
             folder.fetch(messages, fp);
 
             for (int i = messages.length - 1; i >= 0; i--) {
                 Message message = messages[i];
-                emails.add(mapMessageToEmailMessage(message, folder));
+
+                String uid;
+                if (folder instanceof UIDFolder uidFolder) {
+                    uid = String.valueOf(uidFolder.getUID(message));
+                } else {
+                    uid = String.valueOf(message.getMessageNumber());
+                }
+
+                boolean exists = imapMailRepository.existsByAccountEmailAndFolderNameAndUid(
+                        accountEmail, folderToUse.toUpperCase(), uid);
+
+                if (!exists) {
+                    ImapMail imapMail = new ImapMail();
+                    imapMail.setUid(uid);
+                    imapMail.setAccountEmail(accountEmail);
+                    imapMail.setFolderName(folderToUse.toUpperCase());
+                    imapMail.setSubject(message.getSubject());
+                    imapMail.setSentDate(message.getSentDate() != null ? message.getSentDate() : new java.util.Date());
+
+                    if (message.getFrom() != null && message.getFrom().length > 0) {
+                        imapMail.setSender(((InternetAddress) message.getFrom()[0]).getAddress());
+                    } else {
+                        imapMail.setSender("Unknown@domain.com");
+                    }
+
+                    imapMail.setSnippet(extractSnippet(message));
+                    imapMail.setRead(message.isSet(Flags.Flag.SEEN));
+                    imapMail.setStarred(message.isSet(Flags.Flag.FLAGGED));
+
+                    imapMailRepository.save(imapMail);
+                }
             }
         }catch (Exception e){
+            System.err.println("[IMAP SYNC ERROR] Błąd synchronizacji folderu " + folderName);
             e.printStackTrace();
         } finally {
+            activeSyncs.remove(syncKey);
             closeQuietly(folder);
         }
-        return emails;
-    }
-
-    private EmailMessage mapMessageToEmailMessage(Message message, Folder folder) throws Exception {
-        EmailMessage emailMsg = new EmailMessage();
-
-        if (folder instanceof UIDFolder uidFolder) {
-            emailMsg.setId(String.valueOf(uidFolder.getUID(message)));
-        }else {
-            emailMsg.setId(String.valueOf(message.getMessageNumber()));
-        }
-
-        emailMsg.setSubject(message.getSubject());
-        emailMsg.setSentDate(message.getSentDate());
-        if (message.getFrom() != null && message.getFrom().length > 0) {
-            emailMsg.setFrom(((InternetAddress) message.getFrom()[0]).getAddress());
-        }
-
-        emailMsg.setHasAttachments(message.isMimeType("multipart/mixed") || message.isMimeType("multipart/related"));
-        emailMsg.setSnippet(extractSnippet(message));
-
-        emailMsg.setContent("");
-        return emailMsg;
     }
 
     public int getFolderMessageCount(String folderName) {
@@ -95,7 +138,7 @@ public class MailService {
 
         try{
             getConnectedStore();
-            folder = store.getFolder(folderToUse);
+            folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
             return folder.getMessageCount();
         } catch (Exception e) {
@@ -106,7 +149,7 @@ public class MailService {
     }
 
     private String extractSnippet(Message message) {
-        try{
+        try {
             String rawText = "";
             if (message.isMimeType("text/plain")) {
                 rawText = message.getContent().toString();
@@ -114,7 +157,7 @@ public class MailService {
                 rawText = cleanHTML(message.getContent().toString());
             } else if (message.isMimeType("multipart/*")) {
                 Multipart mp = (Multipart) message.getContent();
-                for (int i = 0; i < mp.getCount(); i++){
+                for (int i = 0; i < mp.getCount(); i++) {
                     BodyPart part = mp.getBodyPart(i);
                     if (part.isMimeType("text/plain")) {
                         rawText = part.getContent().toString();
@@ -127,10 +170,9 @@ public class MailService {
             }
 
             String snippet = rawText.replaceAll("\\s+", " ").trim();
-
             return snippet.length() > 120 ? snippet.substring(0, 117) + "..." : snippet;
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             return "Nie udało się pobrać podglądu";
         }
     }
@@ -142,21 +184,20 @@ public class MailService {
         return Jsoup.parse(html).text();
     }
 
-    private synchronized void getConnectedStore() throws MessagingException {
-        if (store != null && store.isConnected()) {
-            return;
-        }
+    private void getConnectedStore() throws MessagingException {
+        Store store = threadLocalStore.get();
+        if (store != null && store.isConnected()) return;
 
         Properties props = new Properties();
-        props.put("mail.store.protocol", "imaps");
         props.put("mail.imaps.host", imapHost);
         props.put("mail.imaps.port", String.valueOf(imapPort));
         props.put("mail.imaps.ssl.enable", "true");
         props.put("mail.imaps.peek", "true");
 
         Session session = Session.getInstance(props);
-        this.store = session.getStore("imaps");
-        this.store.connect(imapHost, imapPort, username, password);
+        store = session.getStore("imaps");
+        store.connect(imapHost, imapPort, username, password);
+        threadLocalStore.set(store);
     }
 
     private void closeQuietly(AutoCloseable resource) {
@@ -165,19 +206,39 @@ public class MailService {
         }
     }
 
-    public EmailMessage getEmailMessage(String folderName, long uid) {
+    public EmailMessage getEmailMessage(String accountEmail ,String folderName, long uid) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
 
         try {
             getConnectedStore();
-            folder = store.getFolder(folderToUse);
-            folder.open(Folder.READ_ONLY);
+            folder = threadLocalStore.get().getFolder(folderToUse);
+            folder.open(Folder.READ_WRITE);
 
             if (folder instanceof UIDFolder uidFolder) {
                 Message message = uidFolder.getMessageByUID(uid);
 
                 if (message != null) {
+                    if (!message.isSet(Flags.Flag.SEEN)) {
+                        message.setFlag(Flags.Flag.SEEN, true);
+                    }
+
+                    try {
+                        imapMailRepository.findByAccountEmailAndFolderNameAndUid(
+                                accountEmail,
+                                folderToUse.toUpperCase(),
+                                String.valueOf(uid))
+                                .ifPresent(localMail -> {
+                                    if (!localMail.isRead()){
+                                        localMail.setRead(true);
+                                        imapMailRepository.save(localMail);
+                                        System.out.println("[DB UPDATE] Mail UID " + uid + " oznaczony jako przeczytany w bazie.");
+                                    }
+                                });
+                    }catch (Exception dbEx){
+                        System.err.println("[DB UPDATE ERROR] Nie udało się zaktualizować statusu w bazie danych: " + dbEx.getMessage());
+                    }
+
                     EmailMessage emailMsg = new EmailMessage();
                     emailMsg.setId(String.valueOf(uid));
                     emailMsg.setSubject(message.getSubject());
@@ -224,29 +285,6 @@ public class MailService {
         return "Nie można wyświetlić wiadomości";
     }
 
-    private List<String> getAttachmentsNames(Message message) {
-        List<String> attachments = new ArrayList<>();
-
-        try {
-            Object content = message.getContent();
-            if (content instanceof Multipart) {
-                Multipart multipart = (Multipart) content;
-                for (int i = 0; i < multipart.getCount(); i++) {
-                    BodyPart part = multipart.getBodyPart(i);
-                    String disposition = part.getDisposition();
-
-                    if (disposition != null && (disposition.equals(Part.ATTACHMENT) ||
-                            disposition.equals(Part.INLINE))) {
-                        attachments.add(part.getFileName());
-                    }
-                }
-            }
-        }catch (Exception e) {
-            e.printStackTrace();
-        }
-        return attachments;
-    }
-
 
     public byte[] downloadAttachment(String folderName, long uid, String fileName) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
@@ -254,7 +292,7 @@ public class MailService {
 
         try {
             getConnectedStore();
-            folder = store.getFolder(folderToUse);
+            folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
             Message message = ((UIDFolder) folder).getMessageByUID(uid);
 
@@ -317,4 +355,80 @@ public class MailService {
             }
         }
     }
+
+    public Email prepareBaseEmailFromImap(String folderName, long uid) {
+        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
+        Folder folder = null;
+        try {
+            getConnectedStore();
+            folder = threadLocalStore.get().getFolder(folderToUse);
+            folder.open(Folder.READ_ONLY);
+
+            if (folder instanceof UIDFolder uidFolder) {
+                Message message = uidFolder.getMessageByUID(uid);
+                if (message instanceof jakarta.mail.internet.MimeMessage mimeMessage) {
+                    Email converted = EmailConverter.mimeMessageToEmail(mimeMessage);
+
+                    List<AttachmentResource> fixedImages = new ArrayList<>();
+                    for (AttachmentResource img : converted.getEmbeddedImages()) {
+                        try {
+                            byte[] data = img.getDataSource().getInputStream().readAllBytes();
+                            if (data.length == 0) {
+                                byte[] fetched = findPartDataRecursive(mimeMessage, img.getName());
+                                if (fetched != null && fetched.length > 0) {
+                                    String mime = img.getDataSource().getContentType();
+                                    fixedImages.add(new AttachmentResource(img.getName(),
+                                            new ByteArrayDataSource(fetched, mime)));
+                                }
+                            } else {
+                                fixedImages.add(img);
+                            }
+                        } catch (Exception e) {
+                            byte[] fetched = findPartDataRecursive(mimeMessage, img.getName());
+                            if (fetched != null && fetched.length > 0) {
+                                String mime = img.getDataSource().getContentType();
+                                fixedImages.add(new AttachmentResource(img.getName(),
+                                        new ByteArrayDataSource(fetched, mime)));
+                            }
+                        }
+                    }
+
+                    return EmailBuilder.copying(converted)
+                            .clearEmbeddedImages()
+                            .withEmbeddedImages(fixedImages)
+                            .buildEmail();
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Błąd podczas przygotowania emaila z IMAP:");
+            e.printStackTrace();
+        } finally {
+            closeQuietly(folder);
+        }
+        return null;
+    }
+
+    public List<String> getSuggestedRecipients(Long userId, String senderEmail) {
+        return mailRepository.findRecentRecipientsByEmail(userId, senderEmail, PageRequest.of(0, 10));
+    }
+
+    public List<String> getGlobalSuggestedRecipients(Long userId) {
+        return mailRepository.findRecentRecipientsByAccount(userId, PageRequest.of(0, 20));
+    }
+
+    public org.springframework.data.domain.Page<ImapMail> getEmailsFromDb(String accountEmail ,String folderName, String query, int page, int size) {
+        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName.toUpperCase();
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+
+        if (query != null && !query.trim().isEmpty()) {
+            return imapMailRepository.searchMails(accountEmail, folderToUse, query, pageable);
+        }
+
+        if ("STARRED".equals(folderToUse)) {
+            return imapMailRepository.findByAccountEmailAndIsStarredTrueOrderBySentDateDescIdDesc(accountEmail, pageable);
+        }
+
+        return imapMailRepository.findByAccountEmailAndFolderNameOrderBySentDateDescIdDesc(accountEmail, folderToUse, pageable);
+    }
+
 }

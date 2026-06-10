@@ -2,7 +2,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #0b0b14;
+    background: var(--body-bg);
     width: 100vw;
 }
 
