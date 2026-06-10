@@ -65,8 +65,10 @@ export const mailService = {
     },
 
     syncEmails: async (accountEmail, folder) => {
+        const token = localStorage.getItem('token');
         const response = await axios.post(`${API_URL}/sync`, null, {
-            params: {accountEmail, folder}
+            params: { accountEmail, folder },
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         return response.data;
     }
