@@ -36,5 +36,4 @@ public interface ImapMailRepository extends JpaRepository<ImapMail, Long> {
                                @Param("query") String query,
                                Pageable pageable);
 
-    String accountEmail(String accountEmail);
 }
