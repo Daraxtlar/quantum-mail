@@ -2,6 +2,7 @@ import "react";
 import {Link, useNavigate} from 'react-router-dom';
 import "../styles/Login.css";
 import {useState} from "react";
+import {authService} from "../services/AuthService.js";
 
 function Register() {
     const [username, setUsername] = useState('')
@@ -12,28 +13,13 @@ function Register() {
     async function handleSubmit(e) {
         e.preventDefault()
 
-        const response = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                username,
-                password,
-                email
-            })
-        })
-
-        if (response.ok){
+        try {
+            await authService.register(username, password, email);
             navigate("/login");
-        }else {
+        }catch (err) {
             //TODO Jakiś error normalny do wyświetlenia
-            const errorData = await response.json();
-            console.log("Błąd rejestracji:", errorData);
+            console.error("Błąd rejestracji:", err);
         }
-
-        const data = await response.json()
-        console.log(data)
     }
 
     return (

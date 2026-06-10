@@ -1,12 +1,20 @@
 package com.daraxtlar.quantummail.service;
 
-import jakarta.mail.MessagingException;
+import com.daraxtlar.quantummail.entity.Mail;
+import com.daraxtlar.quantummail.repository.MailRepository;
+import com.daraxtlar.quantummail.repository.UserRepository;
 import jakarta.mail.internet.MimeMessage;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.email.EmailBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
+import java.util.Objects;
+
 
 @Service
 public class SendEmailService {
@@ -14,33 +22,95 @@ public class SendEmailService {
     @Autowired
     private JavaMailSenderImpl mailSender;
 
-    public Boolean sendEmail(String senders, String[] recipients, String subject, String text, String method, MultipartFile[] files) {
+    @Autowired
+    private MailService mailService;
 
-        MimeMessage message = mailSender.createMimeMessage();
+    @Autowired
+    MailRepository mailRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public Boolean sendEmail(Long userId, String senders, String[] recipients, String subject, String text, String method, MultipartFile[] files, String folderName, Long parentMailId, String actionType) {
 
         try {
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            Email email;
+            String formattedComment = text != null ? text.replace("\n", "<br/>") : "";
 
-            System.out.println(recipients);
+            if (parentMailId != null && folderName != null && !folderName.isEmpty()) {
+                Email baseEmail = mailService.prepareBaseEmailFromImap(folderName, parentMailId);
 
-            helper.setFrom(String.valueOf(senders));
-            helper.setTo(recipients);
-            helper.setSubject(subject);
-            helper.setText(text);
+                if (baseEmail != null) {
+                    var builder = "forward".equalsIgnoreCase(actionType)
+                            ? EmailBuilder.forwarding(baseEmail)
+                            : EmailBuilder.replyingTo(baseEmail);
 
-            if (files != null) {
-                for (MultipartFile file : files)
-                    helper.addAttachment(file.getOriginalFilename(), file);
+                    builder.from(senders).clearRecipients();
+
+
+                    if (recipients != null) {
+                        for (String recipient : recipients) {
+                            builder.to(recipient);
+                        }
+                    }
+
+                    builder.withSubject(subject)
+                            .prependTextHTML(formattedComment + "<br><br>");
+
+                    if (files != null) {
+                        for (MultipartFile file : files) {
+                            builder.withAttachment(file.getOriginalFilename(), file.getBytes(), Objects.requireNonNull(file.getContentType()));
+                        }
+                    }
+                    email = builder.buildEmail();
+                }else {
+                    return false;
+                }
+            }else {
+                var builder = EmailBuilder.startingBlank()
+                        .from(senders)
+                        .withSubject(subject)
+                        .withHTMLText(formattedComment);
+
+                if (recipients != null) {
+                    for (String recipient : recipients) {
+                        builder.to(recipient);
+                    }
+                }
+
+                if (files != null) {
+                    for (MultipartFile file : files) {
+                        if (!file.isEmpty()) {
+                            builder.withAttachment(file.getOriginalFilename(), file.getBytes(), Objects.requireNonNull(file.getContentType()));
+                        }
+                    }
+                }
+                email = builder.buildEmail();
             }
 
-            mailSender.send(message);
+            MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(email, mailSender.getSession());
+            mailSender.send(mimeMessage);
+
+            for (String recipient : recipients) {
+                String cleanRecipient = recipient.trim();
+                if (!cleanRecipient.isEmpty()) {
+                    Mail contact = mailRepository.findBySenderEmailAndRecipientEmailAndUserId(senders, cleanRecipient, userId).orElse(new Mail());
+
+                    if (contact.getId() == null) {
+                        contact.setSenderEmail(senders);
+                        contact.setRecipientEmail(cleanRecipient);
+                        contact.setUser(userRepository.getReferenceById(userId));
+                    }
+
+                    contact.setSentDate(LocalDateTime.now());
+                    mailRepository.save(contact);
+                }
+            }
+
             return true;
-        } catch (MessagingException me) {
-            System.out.println(senders);
-            System.out.println(recipients);
-            System.out.println(subject);
-            System.out.println(text);
-            System.out.println(me);
+        } catch (Exception e) {
+            System.out.println("Błąd podczas wysyłania przez Simple Java Mail:");
+            e.printStackTrace();
         }
         return false;
     }

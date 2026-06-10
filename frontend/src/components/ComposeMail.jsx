@@ -1,14 +1,18 @@
 import "../styles/Compose-mail.css";
 import {X, Paperclip, Send, Trash2, Minus, Maximize2} from "lucide-react";
 import {useCallback, useEffect, useRef, useState} from "react";
+import {mailService} from "../services/MailService.js";
 
-function ComposeMail({onClose, onSend, userEmail, replyTo}) {
+function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
+    const [senderEmail, setSenderEmail] = useState("lukasz78899@op.pl");
+    const [suggestions, setSuggestions] = useState([]);
+
     const [to, setTo] = useState(
-        replyTo
+        initialTo || (replyTo
             ? replyTo._type === "reply"
-                ? replyTo.email
+                ? replyTo.sender
                 : ""
-            : ""
+            : "")
     );
     const [subject, setSubject] = useState(
         replyTo
@@ -19,17 +23,27 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
     );
     const [body, setBody] = useState(
         replyTo && replyTo._type === "forward"
-            ? `\n\n---------- Forwarded message ----------\nFrom: ${replyTo.sender} <${replyTo.email}>\nDate: ${replyTo.date}\nSubject: ${replyTo.subject}\n\n${replyTo.body}`
+            ? `\n\n---------- Forwarded message ----------\n\n`
             : ""
     );
+
+    useEffect(() => {
+        if (senderEmail){
+            mailService.fetchSuggestions(senderEmail)
+                .then(data => setSuggestions(data))
+                .catch(err => {
+                    console.error("Error fetching suggestions:", err);
+                });
+        }
+    }, [senderEmail])
 
     useEffect(() => {
         setTo(
             replyTo
                 ? replyTo._type === "reply"
-                    ? replyTo.email
+                    ? replyTo.sender
                     : ""
-                : ""
+                : initialTo || ""
         );
         setSubject(
             replyTo
@@ -40,11 +54,11 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
         );
         setBody(
             replyTo && replyTo._type === "forward"
-                ? `\n\n---------- Forwarded message ----------\nFrom: ${replyTo.sender} <${replyTo.email}>\nDate: ${replyTo.date}\nSubject: ${replyTo.subject}\n\n${replyTo.body}`
+                ? `\n\n---------- Forwarded message ----------\n\n`
                 : ""
         );
         setFiles([]);
-    }, [replyTo]);
+    }, [replyTo, initialTo]);
 
     const getTitle = (isMinimized = false) => {
         const maxLength = isMinimized ? 30 : Math.floor((size.width || 560) / 12);
@@ -174,38 +188,37 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
         setSending(true);
 
         const formData = new FormData();
-        //userEmail || "user@quantummail.com"
-        formData.append('senders', 'lukasz78899@op.pl');
+        formData.append('senders', senderEmail);
 
         const recipients = to.split(",").map(email => email.trim()).filter(Boolean);
         recipients.forEach(recipient => formData.append('recipients', recipient));
 
         formData.append('subject', subject);
-        formData.append('text', body);
         formData.append('method', 'send');
+        formData.append('text', body);
+
+        if (replyTo){
+            formData.append('parentMailId', replyTo.id);
+            formData.append('folderName', folder || "INBOX");
+            formData.append('actionType', replyTo._type);
+        }
 
         if (files.length > 0){
             files.forEach(file => formData.append('files', file));
         }
 
         try{
-            const response = await fetch('/api/mails/send', {
-                method: 'POST',
-                body: formData
-            });
+            await mailService.sendEmail(formData);
 
-            if (response.ok){
-                setTo("");
-                setSubject("");
-                setBody("");
-                setFiles([]);
-                onClose?.();
-            }else {
-                //TODO JAKIS LEPSZY ALERT
-                alert("Failed to send email")
-            }
+            setTo("");
+            setSubject("");
+            setBody("");
+            setFiles([]);
+            onClose?.();
         }catch (error) {
-            console.log("Error sending email:", error);
+            console.error("Error sending email:", error);
+
+            //TODO JAKIŚ LEPSZY ALERT
              alert("Error sending email");
         } finally {
             setSending(false);
@@ -264,6 +277,18 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
 
                 <div className={"compose-body"}>
                     <div className={"compose-field"}>
+                        <label className={"compose-label"}>From:</label>
+                        <select
+                            className={"compose-input"}
+                            value={senderEmail}
+                            onChange={(e) => setSenderEmail(e.target.value)}
+                        >
+                            <option value="lukasz78899@op.pl">lukasz78899@op.pl</option>
+                            <option value="testowy-drugi-email@op.pl">testowy-drugi-email@op.pl</option>
+                        </select>
+                    </div>
+
+                    <div className={"compose-field"}>
                         <label className={"compose-label"}>To:</label>
                         <input
                             type={"text"}
@@ -271,8 +296,14 @@ function ComposeMail({onClose, onSend, userEmail, replyTo}) {
                             value={to}
                             onChange={(e) => setTo(e.target.value)}
                             placeholder={"recipient@email.com"}
+                            list={"recent-recipients"}
                             autoFocus
                         />
+                        <datalist id={"recent-recipients"}>
+                            {suggestions.map((email, index) => (
+                                <option key={index} value={email}/>
+                            ))}
+                        </datalist>
                     </div>
 
                     <div className={"compose-field"}>
