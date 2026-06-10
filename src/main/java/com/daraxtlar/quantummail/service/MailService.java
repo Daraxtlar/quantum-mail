@@ -72,13 +72,13 @@ public class MailService {
 
 
 
-    public void syncFolderFromImap(Long userId, String accountEmail ,String folderName) {
+    public boolean syncFolderFromImap(Long userId, String accountEmail ,String folderName) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
 
         String syncKey = accountEmail + ":" + folderToUse;
         if (!activeSyncs.add(syncKey)) {
             System.out.println("[SYNC BLOCKED] Synchronizacja dla " + syncKey + " już trwa. Ignoruję duplikat żądania.");
-            return;
+            return false;
         }
 
         Folder folder = null;
@@ -89,7 +89,7 @@ public class MailService {
             folder.open(Folder.READ_ONLY);
 
             int totalMessages = folder.getMessageCount();
-            if (totalMessages == 0) return;
+            if (totalMessages == 0) return true;
 
             long localCount = imapMailRepository.countByAccountEmailAndFolderName(accountEmail, folderToUse.toUpperCase());
 
@@ -140,15 +140,18 @@ public class MailService {
                     imapMail.setStarred(message.isSet(Flags.Flag.FLAGGED));
 
                     imapMailRepository.save(imapMail);
+                    return true;
                 }
             }
         }catch (Exception e){
             System.err.println("[IMAP SYNC ERROR] Błąd synchronizacji folderu " + folderName);
             e.printStackTrace();
+            return false;
         } finally {
             activeSyncs.remove(syncKey);
             closeQuietly(folder);
         }
+        return true;
     }
 
     public int getFolderMessageCount(Long userId, String accountEmail, String folderName) {

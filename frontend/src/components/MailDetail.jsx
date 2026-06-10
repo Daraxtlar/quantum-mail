@@ -3,7 +3,7 @@ import { ArrowLeft, Archive, Trash2, Star, Reply, Forward, MoreHorizontal, Paper
 import DOMPurify from "dompurify";
 import {useRef} from "react";
 
-function MailDetail({mail, onBack, onReply, folder}) {
+function MailDetail({mail, onBack, onReply, folder, accountEmail}) {
     if (!mail) return null;
     const iframeRef = useRef(null);
     const initial = mail.sender?.charAt(0).toUpperCase() || "?";
@@ -21,7 +21,7 @@ function MailDetail({mail, onBack, onReply, folder}) {
 
         processed = processed.replace(/src=['"]cid:([^'"]+)['"]/gi, (match, cidName) => {
             const safeCid = encodeURIComponent(cidName);
-            return `src="http://localhost:8080/api/mails/${folder}/${mail.id}/attachments/${safeCid}?token=${token}"`;
+            return `src="http://localhost:8080/api/mails/${accountEmail}/${folder}/${mail.id}/attachments/${safeCid}?token=${token}"`;
         });
 
         processed = processed.replace(/data-src=/gi, 'src=');
@@ -54,7 +54,7 @@ function MailDetail({mail, onBack, onReply, folder}) {
 
     const handleDownload = (fileName) => {
         const token = localStorage.getItem('token');
-        window.open(`http://localhost:8080/api/mails/${folder}/${mail.id}/attachments/${fileName}?download=true&token=${token}`, "_blank");
+        window.open(`http://localhost:8080/api/mails/${accountEmail}/${folder}/${mail.id}/attachments/${fileName}?download=true&token=${token}`, "_blank");
     }
 
     return (

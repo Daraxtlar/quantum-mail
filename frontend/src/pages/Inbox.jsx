@@ -2,69 +2,11 @@ import Topbar from "../components/Topbar.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import MailList from "../components/MailList.jsx";
 import "../styles/Inbox.css"
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import MailDetail from "../components/MailDetail.jsx";
 import ComposeMail from "../components/ComposeMail.jsx";
 import {mailService} from "../services/MailService.js";
 import {EmailAccountService} from "../services/EmailAccountService.js";
-
-
-//Test Konta i Foldery
-const accounts = [
-    {
-        id: 1,
-        email: "JohnSmith@gmail.com",
-        folders: [
-            {name: "Inbox", unread: 3},
-            {name: "Drafts"},
-            {name: "Sent"},
-            {name: "Starred"},
-            {name: "Spam", unread: 2},
-            {name: "Trash"},
-        ],
-    },
-    {
-        id: 2,
-        email: "AuthorJohnSmith@gmail.com",
-        folders: [
-            {name: "Inbox", unread: 1},
-            {name: "Drafts"},
-            {name: "Sent"},
-            {name: "Starred"},
-            {name: "Spam"},
-            {name: "Trash", unread: 3},
-        ],
-    },
-    {
-        id: 3,
-        email: "Love2Write@yahoo.com",
-        folders: [],
-    },
-    {
-        id: 4,
-        email: "JohnSmith@gmail.com",
-        folders: [
-            {name: "Inbox", unread: 3},
-            {name: "Drafts"},
-            {name: "Sent"},
-            {name: "Starred"},
-            {name: "Spam", unread: 2},
-            {name: "Trash"},
-        ],
-    },
-    {
-        id: 5,
-        email: "JohnSmith@gmail.com",
-        folders: [
-            {name: "Inbox", unread: 3},
-            {name: "Drafts"},
-            {name: "Sent"},
-            {name: "Starred"},
-            {name: "Spam", unread: 2},
-            {name: "Trash"},
-        ],
-    },
-];
 
 function Inbox() {
     const [accounts, setAccounts] = useState([]);
@@ -74,6 +16,8 @@ function Inbox() {
     const [showCompose, setShowCompose] = useState(false);
     const [replyMail, setReplyMail] = useState(null);
     const [initialToEmail, setInitialToEmail] = useState("");
+    const [isSyncing, setIsSyncing] = useState(false);
+    const debounceTimeoutRef = useRef(null);
 
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -119,8 +63,16 @@ function Inbox() {
 
 
     useEffect(() => {
+        let active = true;
+
         if (currentAccount){
-            loadEmails();
+            loadEmails(() => active);
+        }
+        return () => {
+            active = false;
+            if (debounceTimeoutRef.current){
+                clearTimeout(debounceTimeoutRef.current);
+            }
         }
     }, [currentAccount, currentFolder, currentPage, searchQuery]);
 
@@ -143,24 +95,42 @@ function Inbox() {
         setTotalCount(response.totalCount);
     }
 
-    const loadEmails = async () => {
+    const loadEmails = async (isActive) => {
         try{
             const pageForBackend = currentPage - 1;
 
             if (mails.length === 0) setLoading(true);
 
             const response = await mailService.fetchEmails(currentAccount ,currentFolder, pageForBackend, 20, searchQuery);
+            if (!isActive) return;
+
             updateMailState(response);
             setLoading(false);
 
+            if (debounceTimeoutRef.current){
+                clearTimeout(debounceTimeoutRef.current);
+            }
+
             if (currentPage === 1 && (!searchQuery || searchQuery.trim() === "")){
-                mailService.syncEmails(currentAccount, currentFolder)
-                    .then(async () => {
-                        console.log("Sync completed, reloading emails...");
+
+                if (isSyncing){
+                    return;
+                }
+
+                debounceTimeoutRef.current = setTimeout(async () => {
+                    setIsSyncing(true);
+
+                    try {
+                        await mailService.syncEmails(currentAccount, currentFolder);
                         const updatedResponse = await mailService.fetchEmails(currentAccount ,currentFolder, pageForBackend, 20, searchQuery || "");
+                        if (!isActive) return;
                         updateMailState(updatedResponse);
-                    })
-                    .catch (error => console.error("Error during sync:", error));
+                    }catch (error){
+                        console.error("Error syncing emails:", error);
+                    }finally {
+                        setIsSyncing(false);
+                    }
+                }, 500);
             }
         }catch (error){
             console.error("Error fetching emails:", error);
@@ -257,6 +227,7 @@ function Inbox() {
                         onBack={() => setSelectedMail(null)}
                         onReply={replyToMail}
                         folder={currentFolder}
+                        accountEmail={currentAccount}
                     />
                 ) : (
                     <MailList

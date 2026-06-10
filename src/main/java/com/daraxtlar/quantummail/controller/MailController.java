@@ -7,10 +7,7 @@ import com.daraxtlar.quantummail.service.MailService;
 import com.daraxtlar.quantummail.service.SendEmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.MediaTypeFactory;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -91,20 +88,35 @@ public class MailController {
 
         Long userId = getUserIdFromHeader(bearerToken);
 
-        mailService.syncFolderFromImap(userId, accountEmail, folder);
-        return ResponseEntity.ok(Map.of("message", "Folder synchronized successfully"));
+        boolean success = mailService.syncFolderFromImap(userId, accountEmail, folder);
+        if (success) {
+            return ResponseEntity.ok(Map.of("message", "Folder synchronized successfully"));
+        } else {
+            return ResponseEntity.status(500).body(Map.of("error", "IMAP Authentication or connection failed"));
+        }
     }
 
     @GetMapping("/{accountEmail}/{folder}/{uid}/attachments/{filename:.+}")
     public ResponseEntity<byte[]> downloadFile(
-            @RequestHeader("Authorization") String bearerToken,
+            @RequestHeader(value = "Authorization", required = false) String bearerToken,
+            @RequestParam(value = "token", required = false) String queryToken,
             @PathVariable String accountEmail,
             @PathVariable String folder,
             @PathVariable long uid,
             @PathVariable String filename,
             @RequestParam(required = false, defaultValue = "false") boolean download) {
 
-        Long userId = getUserIdFromHeader(bearerToken);
+        String token = (bearerToken != null && !bearerToken.isEmpty()) ? bearerToken : queryToken;
+
+        if (token == null || token.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (!token.startsWith("Bearer ")) {
+            token = "Bearer " + token;
+        }
+
+        Long userId = getUserIdFromHeader(token);
 
         byte[] data = mailService.downloadAttachment(userId, accountEmail, folder, uid, filename);
 
