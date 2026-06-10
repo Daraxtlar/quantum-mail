@@ -6,6 +6,7 @@ import {useEffect, useState} from "react";
 import MailDetail from "../components/MailDetail.jsx";
 import ComposeMail from "../components/ComposeMail.jsx";
 import {mailService} from "../services/MailService.js";
+import {EmailAccountService} from "../services/EmailAccountService.js";
 
 
 //Test Konta i Foldery
@@ -66,7 +67,8 @@ const accounts = [
 ];
 
 function Inbox() {
-    const [currentAccount, setCurrentAccount] = useState("lukasz78899@op.pl");
+    const [accounts, setAccounts] = useState([]);
+    const [currentAccount, setCurrentAccount] = useState("");
     const [currentFolder, setCurrentFolder] = useState("INBOX");
     const [selectedMail, setSelectedMail] = useState(null);
     const [showCompose, setShowCompose] = useState(false);
@@ -82,6 +84,39 @@ function Inbox() {
     const [searchQuery, setSearchQuery] = useState("");
     const [mails, setMails] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    const loadAccounts = async  () => {
+        try {
+            const data = await EmailAccountService.fetchAccounts();
+
+            const formattedAccounts = data.map(acc => ({
+                id: acc.id,
+                email: acc.emailAddress,
+                folders: [
+                    {name: "Inbox"},
+                    {name: "Drafts"},
+                    {name: "Sent"},
+                    {name: "Starred"},
+                    {name: "Spam"},
+                    {name: "Trash"},
+                ],
+            }));
+
+            setAccounts(formattedAccounts);
+
+            if (formattedAccounts.length > 0 && !currentAccount){
+                setCurrentAccount(formattedAccounts[0].email);
+            }
+        }catch (error) {
+            console.error("Error loading accounts:", error);
+            alert("Failed to load email accounts. Please refresh the page.");
+        }
+    }
+
+    useEffect(() => {
+        loadAccounts();
+    }, []);
+
 
     useEffect(() => {
         if (currentAccount){
@@ -213,7 +248,9 @@ function Inbox() {
             <div className={"layout"}>
                 <Sidebar
                     accounts={accounts}
-                    onFolderClick={handleFolderClick} />
+                    onFolderClick={handleFolderClick}
+                    onAccountAdded={loadAccounts}
+                />
                 {selectedMail ? (
                     <MailDetail
                         mail={selectedMail}

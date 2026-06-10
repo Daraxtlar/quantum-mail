@@ -5,7 +5,7 @@ import {useState} from "react";
 import AddAccountWizard from "./AddAccountWizard.jsx";
 
 
-function Sidebar({accounts= [], onFolderClick}) {
+function Sidebar({accounts= [], onFolderClick, onAccountAdded}) {
     const [expandedAccount, setExpandedAccount] = useState(null);
     const [activeFolder, setActiveFolder] = useState(null);
     const [showAddModal, setShowAddModal] = useState(false)
@@ -31,6 +31,7 @@ function Sidebar({accounts= [], onFolderClick}) {
             {showAddModal && (
                 <AddAccountWizard
                     onClose={() => setShowAddModal(false)}
+                    onAccountAdded={onAccountAdded}
                 />
             )}
             <div className={"accounts-wrapper"}>

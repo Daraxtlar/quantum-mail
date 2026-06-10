@@ -2,8 +2,10 @@ import { useState } from "react";
 import { X, Mail, Settings } from "lucide-react";
 
 import "../styles/AddAccountWizard.css";
+import emailAccount from "./EmailAccount.jsx";
+import {EmailAccountService} from "../services/EmailAccountService.js";
 
-function AddAccountWizard({ onClose }) {
+function AddAccountWizard({ onClose, onAccountAdded }) {
     const [step, setStep] = useState(1);
 
     const [email, setEmail] = useState("");
@@ -12,35 +14,29 @@ function AddAccountWizard({ onClose }) {
     const [imapPort, setImapPort] = useState("993");
     const [ssl, setSsl] = useState(true);
 
+    const [smtpHost, setSmtpHost] = useState("");
+    const [smtpPort, setSmtpPort] = useState("465");
+    const [smtpSsl, setSmtpSsl] = useState(true);
+
     async function handleManualSubmit(e) {
         e.preventDefault();
 
         setStep(3);
 
-        try {
-            const response = await fetch(
-                "http://localhost:8080/api/auth/add-address",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        email,
-                        password,
-                        imapHost,
-                        imapPort,
-                        ssl,
-                    }),
-                }
-            );
+        const payload = {
+            emailAddress: email,
+            password: password,
+            imapHost: imapHost,
+            imapPort: parseInt(imapPort, 10),
+            sslEnabled: ssl,
+            smtpHost: smtpHost,
+            smtpPort: parseInt(smtpPort, 10),
+            smtpSslEnabled: smtpSsl
+        };
 
-            if (response.ok) {
-                setStep(4);
-            } else {
-                setStep(2);
-                alert("Failed to connect to mailbox");
-            }
+        try {
+            await EmailAccountService.addAccount(payload);
+            setStep(4);
         } catch (error) {
             setStep(2);
             alert("Connection error");
@@ -172,6 +168,43 @@ function AddAccountWizard({ onClose }) {
                             </label>
                         </div>
 
+                        <div className="settings-section">
+                            <h3>Outgoing Mail (SMTP)</h3>
+
+                            <input
+                                className="wizard-input"
+                                type="text"
+                                placeholder="smtp.example.com"
+                                value={smtpHost}
+                                onChange={(e) =>
+                                    setSmtpHost(e.target.value)
+                                }
+                                required
+                            />
+
+                            <input
+                                className="wizard-input"
+                                type="number"
+                                placeholder="465"
+                                value={smtpPort}
+                                onChange={(e) =>
+                                    setSmtpPort(e.target.value)
+                                }
+                                required
+                            />
+
+                            <label className="checkbox-row">
+                                <input
+                                    type="checkbox"
+                                    checked={smtpSsl}
+                                    onChange={(e) =>
+                                        setSmtpSsl(e.target.checked)
+                                    }
+                                />
+                                Use SSL/TLS
+                            </label>
+                        </div>
+
                         <div className="wizard-actions">
                             <button
                                 type="button"
@@ -209,7 +242,10 @@ function AddAccountWizard({ onClose }) {
 
                         <button
                             className="primary-button"
-                            onClick={onClose}
+                            onClick={() =>{
+                                if (onAccountAdded) onAccountAdded()
+                                onClose();
+                            }}
                         >
                             Finish
                         </button>
