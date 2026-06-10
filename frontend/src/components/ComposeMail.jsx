@@ -4,7 +4,8 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import {mailService} from "../services/MailService.js";
 
 function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
-    const [senderEmail, setSenderEmail] = useState("lukasz78899@op.pl");
+    const [availableSenders, setAvailableSenders] = useState([]);
+    const [senderEmail, setSenderEmail] = useState(userEmail);
     const [suggestions, setSuggestions] = useState([]);
 
     const [to, setTo] = useState(
@@ -26,6 +27,20 @@ function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
             ? `\n\n---------- Forwarded message ----------\n\n`
             : ""
     );
+
+    useEffect(() => {
+        mailService.fetchUserEmailAccounts()
+            .then(accounts => {
+                setAvailableSenders(accounts);
+
+                if (!userEmail && accounts.length > 0){
+                    setSenderEmail(accounts[0]);
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching user email accounts:", err);
+            })
+    })
 
     useEffect(() => {
         if (senderEmail){
@@ -283,8 +298,9 @@ function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
                             value={senderEmail}
                             onChange={(e) => setSenderEmail(e.target.value)}
                         >
-                            <option value="lukasz78899@op.pl">lukasz78899@op.pl</option>
-                            <option value="testowy-drugi-email@op.pl">testowy-drugi-email@op.pl</option>
+                            {availableSenders.map((email, idx) => (
+                                <option key={idx} value={email}>{email}</option>
+                            ))}
                         </select>
                     </div>
 

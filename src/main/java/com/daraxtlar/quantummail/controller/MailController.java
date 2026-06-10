@@ -23,13 +23,18 @@ import java.util.Map;
 public class MailController {
     private final SendEmailService sendEmailService;
     private final MailService mailService;
-
-    @Autowired
     JwtService jwtService;
 
-    public MailController(SendEmailService sendEmailService, MailService mailService) {
+    @Autowired
+    public MailController(SendEmailService sendEmailService, MailService mailService, JwtService jwtService) {
         this.sendEmailService = sendEmailService;
         this.mailService = mailService;
+        this.jwtService = jwtService;
+    }
+
+    private Long getUserIdFromHeader(String bearerToken) {
+        String token = bearerToken.substring(7);
+        return jwtService.getUserIdFromToken(token);
     }
 
     @PostMapping("/send")
@@ -45,8 +50,7 @@ public class MailController {
             @RequestParam(required = false) Long parentMailId,
             @RequestParam(required = false) String actionType) {
 
-        String token = bearerToken.substring(7);
-        Long userId = jwtService.getUserIdFromToken(token);
+        Long userId = getUserIdFromHeader(bearerToken);
 
         Boolean result = sendEmailService.sendEmail(userId ,senders, recipients, subject, text, method, files, folderName, parentMailId, actionType);
 
@@ -59,13 +63,16 @@ public class MailController {
 
     @GetMapping("/fetch")
     public ResponseEntity<?> fetchEmails(
+            @RequestHeader("Authorization") String bearerToken,
             @RequestParam String accountEmail,
             @RequestParam(defaultValue = "INBOX") String folder,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String query) {
 
-        Page<ImapMail> emailPage = mailService.getEmailsFromDb(accountEmail ,folder, query, page, size);
+        Long userId = getUserIdFromHeader(bearerToken);
+
+        Page<ImapMail> emailPage = mailService.getEmailsFromDb(userId, accountEmail ,folder, query, page, size);
 
         return ResponseEntity.ok(Map.of(
                 "emails", emailPage.getContent(),
@@ -78,19 +85,28 @@ public class MailController {
 
     @PostMapping("/sync")
     public ResponseEntity<?> syncEmails(
+            @RequestHeader("Authorization") String bearerToken,
             @RequestParam String accountEmail,
             @RequestParam(defaultValue = "INBOX") String folder){
-        mailService.syncFolderFromImap(accountEmail, folder);
+
+        Long userId = getUserIdFromHeader(bearerToken);
+
+        mailService.syncFolderFromImap(userId, accountEmail, folder);
         return ResponseEntity.ok(Map.of("message", "Folder synchronized successfully"));
     }
 
-    @GetMapping("/{folder}/{uid}/attachments/{filename:.+}")
+    @GetMapping("/{accountEmail}/{folder}/{uid}/attachments/{filename:.+}")
     public ResponseEntity<byte[]> downloadFile(
+            @RequestHeader("Authorization") String bearerToken,
+            @PathVariable String accountEmail,
             @PathVariable String folder,
             @PathVariable long uid,
             @PathVariable String filename,
             @RequestParam(required = false, defaultValue = "false") boolean download) {
-        byte[] data = mailService.downloadAttachment(folder, uid, filename);
+
+        Long userId = getUserIdFromHeader(bearerToken);
+
+        byte[] data = mailService.downloadAttachment(userId, accountEmail, folder, uid, filename);
 
         if (data == null) return ResponseEntity.noContent().build();
 
@@ -106,10 +122,13 @@ public class MailController {
 
     @GetMapping("/{accountEmail}/{folder}/{uid}")
     public ResponseEntity<EmailMessage> getEmailDetails(
+            @RequestHeader("Authorization") String bearerToken,
             @PathVariable String accountEmail,
             @PathVariable String folder,
             @PathVariable long uid) {
-        EmailMessage email = mailService.getEmailMessage(accountEmail ,folder, uid);
+
+        Long userId = getUserIdFromHeader(bearerToken);
+        EmailMessage email = mailService.getEmailMessage(userId, accountEmail ,folder, uid);
 
         if (email != null) {
             return ResponseEntity.ok(email);
@@ -122,17 +141,23 @@ public class MailController {
     public ResponseEntity<List<String>> getSuggestions(
             @RequestHeader("Authorization") String bearerToken,
             @RequestParam String senderEmail) {
-        String token = bearerToken.substring(7);
-        Long userId = jwtService.getUserIdFromToken(token);
+        Long userId = getUserIdFromHeader(bearerToken);
 
         return ResponseEntity.ok(mailService.getSuggestedRecipients(userId ,senderEmail));
     }
 
     @GetMapping("/suggestions/global")
     public ResponseEntity<List<String>> getGlobalSuggestions(@RequestHeader("Authorization") String bearerToken) {
-        String token = bearerToken.substring(7);
-        Long userId = jwtService.getUserIdFromToken(token);
+        Long userId = getUserIdFromHeader(bearerToken);
         return ResponseEntity.ok(mailService.getGlobalSuggestedRecipients(userId));
+    }
+
+    @GetMapping("/accounts")
+    public ResponseEntity<List<String>> getUserEmailAccounts(
+            @RequestHeader("Authorization") String bearerToken) {
+        Long userId = getUserIdFromHeader(bearerToken);
+        List<String> accounts = mailService.getUserEmailAccounts(userId);
+        return ResponseEntity.ok(accounts);
     }
 
 }

@@ -71,5 +71,13 @@ export const mailService = {
             headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         return response.data;
+    },
+
+    fetchUserEmailAccounts: async () => {
+        const response = await fetch(`${API_URL}/accounts`, {
+            headers: getHeaders()
+        });
+        await handleResponse(response);
+        return await response.json();
     }
 };

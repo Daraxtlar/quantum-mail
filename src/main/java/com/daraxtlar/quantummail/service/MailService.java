@@ -1,8 +1,10 @@
 package com.daraxtlar.quantummail.service;
 
+import com.daraxtlar.quantummail.entity.EmailAddress;
 import com.daraxtlar.quantummail.entity.ImapMail;
 import com.daraxtlar.quantummail.model.Attachment;
 import com.daraxtlar.quantummail.model.EmailMessage;
+import com.daraxtlar.quantummail.repository.EmailAddressRepository;
 import com.daraxtlar.quantummail.repository.ImapMailRepository;
 import com.daraxtlar.quantummail.repository.MailRepository;
 import jakarta.mail.*;
@@ -27,33 +29,50 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class MailService {
-    @Value("${email.account.username}")
-    private String username;
-
-    @Value("${email.account.password}")
-    private String password;
-
-    @Value("${email.account.imap.host}")
-    private String imapHost;
-
-    @Value("${email.account.imap.port}")
-    private int imapPort;
-
-    @Value("${email.account.imap.ssl}")
-    private boolean imapSsl;
-
     @Autowired
     private MailRepository mailRepository;
 
     @Autowired
     private ImapMailRepository imapMailRepository;
 
-    private final ThreadLocal<Store> threadLocalStore = new ThreadLocal<>();
+    @Autowired
+    private EmailAddressRepository emailAddressRepository;
 
+    @Autowired
+    private EmailCryptoService emailCryptoService;
+
+    private final ThreadLocal<Store> threadLocalStore = new ThreadLocal<>();
     private final Set<String> activeSyncs = ConcurrentHashMap.newKeySet();
 
+    private void getConnectedStore(String accountEmail, Long userId) throws MessagingException {
+        Store store = threadLocalStore.get();
 
-    public void syncFolderFromImap(String accountEmail ,String folderName) {
+        if (store != null && store.isConnected() && store.getURLName().getUsername().equalsIgnoreCase(accountEmail)) {
+            return;
+        }
+
+        if (store != null) {
+            closeQuietly(store);
+        }
+
+        EmailAddress account = emailAddressRepository.findByEmailAddressAndUserId(accountEmail, userId)
+                .orElseThrow(() -> new SecurityException("Konto email nie znalezione: " + accountEmail));
+
+        Properties props = new Properties();
+        props.put("mail.imaps.host", account.getImapHost());
+        props.put("mail.imaps.port", String.valueOf(account.getImapPort()));
+        props.put("mail.imaps.ssl.enable", String.valueOf(account.getSslEnabled()));
+        props.put("mail.imaps.peek", "true");
+
+        Session session = Session.getInstance(props);
+        store = session.getStore("imaps");
+        store.connect(account.getImapHost(), account.getImapPort(), account.getEmailAddress(), emailCryptoService.decrypt(account.getEncryptedPassword()));
+        threadLocalStore.set(store);
+    }
+
+
+
+    public void syncFolderFromImap(Long userId, String accountEmail ,String folderName) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
 
         String syncKey = accountEmail + ":" + folderToUse;
@@ -65,7 +84,7 @@ public class MailService {
         Folder folder = null;
 
         try{
-            getConnectedStore();
+            getConnectedStore(accountEmail, userId);
             folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
 
@@ -132,12 +151,12 @@ public class MailService {
         }
     }
 
-    public int getFolderMessageCount(String folderName) {
+    public int getFolderMessageCount(Long userId, String accountEmail, String folderName) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
 
         try{
-            getConnectedStore();
+            getConnectedStore(accountEmail, userId);
             folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
             return folder.getMessageCount();
@@ -184,21 +203,6 @@ public class MailService {
         return Jsoup.parse(html).text();
     }
 
-    private void getConnectedStore() throws MessagingException {
-        Store store = threadLocalStore.get();
-        if (store != null && store.isConnected()) return;
-
-        Properties props = new Properties();
-        props.put("mail.imaps.host", imapHost);
-        props.put("mail.imaps.port", String.valueOf(imapPort));
-        props.put("mail.imaps.ssl.enable", "true");
-        props.put("mail.imaps.peek", "true");
-
-        Session session = Session.getInstance(props);
-        store = session.getStore("imaps");
-        store.connect(imapHost, imapPort, username, password);
-        threadLocalStore.set(store);
-    }
 
     private void closeQuietly(AutoCloseable resource) {
         if (resource != null) {
@@ -206,12 +210,12 @@ public class MailService {
         }
     }
 
-    public EmailMessage getEmailMessage(String accountEmail ,String folderName, long uid) {
+    public EmailMessage getEmailMessage(Long userId, String accountEmail ,String folderName, long uid) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
 
         try {
-            getConnectedStore();
+            getConnectedStore(accountEmail, userId);
             folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_WRITE);
 
@@ -286,12 +290,12 @@ public class MailService {
     }
 
 
-    public byte[] downloadAttachment(String folderName, long uid, String fileName) {
+    public byte[] downloadAttachment(Long userId,String accountEmail,String folderName, long uid, String fileName) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
 
         try {
-            getConnectedStore();
+            getConnectedStore(accountEmail, userId);
             folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
             Message message = ((UIDFolder) folder).getMessageByUID(uid);
@@ -356,11 +360,11 @@ public class MailService {
         }
     }
 
-    public Email prepareBaseEmailFromImap(String folderName, long uid) {
+    public Email prepareBaseEmailFromImap(Long userId, String accountEmail, String folderName, long uid) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
         try {
-            getConnectedStore();
+            getConnectedStore(accountEmail, userId);
             folder = threadLocalStore.get().getFolder(folderToUse);
             folder.open(Folder.READ_ONLY);
 
@@ -416,7 +420,19 @@ public class MailService {
         return mailRepository.findRecentRecipientsByAccount(userId, PageRequest.of(0, 20));
     }
 
-    public org.springframework.data.domain.Page<ImapMail> getEmailsFromDb(String accountEmail ,String folderName, String query, int page, int size) {
+    public List<String> getUserEmailAccounts(Long userId) {
+        return emailAddressRepository.findByUserId(userId)
+                .stream()
+                .map(EmailAddress::getEmailAddress)
+                .toList();
+    }
+
+    public org.springframework.data.domain.Page<ImapMail> getEmailsFromDb(Long userId, String accountEmail ,String folderName, String query, int page, int size) {
+        boolean hasAccess = emailAddressRepository.findByEmailAddressAndUserId(accountEmail, userId).isPresent();
+        if (!hasAccess) {
+            throw new SecurityException("Brak dostępu do tego konta email: " + accountEmail);
+        }
+
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName.toUpperCase();
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
 
