@@ -16,10 +16,11 @@ function AddAccountWizard({ onClose, onAccountAdded }) {
     const [smtpHost, setSmtpHost] = useState("");
     const [smtpPort, setSmtpPort] = useState("465");
     const [smtpSsl, setSmtpSsl] = useState(true);
+    const [errorMessage, setErrorMessage] = useState("");
 
     async function handleManualSubmit(e) {
         e.preventDefault();
-
+        setErrorMessage("");
         setStep(3);
 
         const payload = {
@@ -38,7 +39,10 @@ function AddAccountWizard({ onClose, onAccountAdded }) {
             setStep(4);
         } catch (error) {
             setStep(2);
-            alert("Connection error");
+            const apiError = error.response?.data?.message
+                || error.response?.data?.error
+                || "Could not connect to mail server. Verify your settings.";
+            setErrorMessage(apiError);
         }
     }
 
@@ -203,6 +207,12 @@ function AddAccountWizard({ onClose, onAccountAdded }) {
                                 Use SSL/TLS
                             </label>
                         </div>
+
+                        {errorMessage && (
+                            <div className={"error-message"}>
+                                {errorMessage}
+                            </div>
+                        )}
 
                         <div className="wizard-actions">
                             <button

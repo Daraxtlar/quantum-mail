@@ -71,6 +71,10 @@
 
     --settings-bg: linear-gradient(135deg, #0a0f4d, #22255e, #3a3a4d);
     --settings-search-bg: #1c0c4f;
+
+    --error-bg: rgba(239, 68, 68, 0.1);
+    --error-color: #ef4444;
+    --error-text: #f87171;
 }
 
 [data-theme='light'] {

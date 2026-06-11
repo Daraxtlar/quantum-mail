@@ -5,8 +5,10 @@ import com.daraxtlar.quantummail.model.EmailAddressDTO;
 import com.daraxtlar.quantummail.service.EmailAddressService;
 import com.daraxtlar.quantummail.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -38,10 +40,12 @@ public class EmailAddressController {
                     "accountId", savedAccount.getId(),
                     "email", savedAccount.getEmailAddress()
             ));
+        }catch (ResponseStatusException e){
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason()));
         }catch (IllegalArgumentException e){
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }catch (Exception e){
-            return ResponseEntity.internalServerError().body(Map.of("error", "An unexpected error occurred"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "An unexpected error occurred"));
         }
 
     }

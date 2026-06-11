@@ -21,9 +21,10 @@ const handleResponse = async (response) => {
 };
 
 export const mailService = {
-    fetchEmails: async (accountEmail ,folder = 'INBOX', page = 0, size = 20, query) => {
+    fetchEmails: async (accountEmail ,folder = 'INBOX', page = 0, size = 20, query, options={}) => {
         const response = await fetch(`${API_URL}/fetch?accountEmail=${accountEmail}&folder=${folder}&page=${page}&size=${size}&query=${query}`, {
-            headers: getHeaders()
+            headers: getHeaders(),
+            signal: options.signal
         });
         await handleResponse(response);
         return await response.json();

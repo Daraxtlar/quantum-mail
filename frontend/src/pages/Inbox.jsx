@@ -63,13 +63,76 @@ function Inbox() {
 
 
     useEffect(() => {
-        let active = true;
+        let isCurrent = true;
+        const abortController = new AbortController();
 
-        if (currentAccount){
-            loadEmails(() => active);
-        }
+        if (!currentAccount) return;
+
+        const loadEmails = async () => {
+            try{
+                const pageForBackend = currentPage - 1;
+
+                if (mails.length === 0) setLoading(true);
+
+                const response = await mailService.fetchEmails(
+                    currentAccount ,
+                    currentFolder,
+                    pageForBackend,
+                    20,
+                    searchQuery,
+                    {signal: abortController.signal }
+                );
+
+                if (!isCurrent) return;
+
+                updateMailState(response);
+                setLoading(false);
+
+                if (currentPage === 1 && (!searchQuery || searchQuery.trim() === "")){
+                    if (debounceTimeoutRef.current){
+                        clearTimeout(debounceTimeoutRef.current);
+                    }
+
+                    debounceTimeoutRef.current = setTimeout(async () => {
+                        if (!isCurrent) return;
+                        setIsSyncing(true);
+
+                        try {
+                            await mailService.syncEmails(currentAccount, currentFolder);
+                            if (!isCurrent) return;
+
+                            const updatedResponse = await mailService.fetchEmails(
+                                currentAccount,
+                                currentFolder,
+                                pageForBackend,
+                                20,
+                                searchQuery || "",
+                                {signal: abortController.signal}
+                            );
+                            if (!isCurrent) return;
+                            updateMailState(updatedResponse);
+                        }catch (error){
+                            if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+                                console.error("Error syncing emails:", error);
+                            }
+                        }finally {
+                            setIsSyncing(false);
+                        }
+                    }, 500);
+                }
+            }catch (error){
+                if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+                    console.error("Error fetching emails:", error);
+                    if (isCurrent) setLoading(false);
+                }
+            }
+        };
+
+        loadEmails();
+
         return () => {
-            active = false;
+            isCurrent = false;
+            abortController.abort();
             if (debounceTimeoutRef.current){
                 clearTimeout(debounceTimeoutRef.current);
             }
@@ -95,48 +158,6 @@ function Inbox() {
         setTotalCount(response.totalCount);
     }
 
-    const loadEmails = async (isActive) => {
-        try{
-            const pageForBackend = currentPage - 1;
-
-            if (mails.length === 0) setLoading(true);
-
-            const response = await mailService.fetchEmails(currentAccount ,currentFolder, pageForBackend, 20, searchQuery);
-            if (!isActive) return;
-
-            updateMailState(response);
-            setLoading(false);
-
-            if (debounceTimeoutRef.current){
-                clearTimeout(debounceTimeoutRef.current);
-            }
-
-            if (currentPage === 1 && (!searchQuery || searchQuery.trim() === "")){
-
-                if (isSyncing){
-                    return;
-                }
-
-                debounceTimeoutRef.current = setTimeout(async () => {
-                    setIsSyncing(true);
-
-                    try {
-                        await mailService.syncEmails(currentAccount, currentFolder);
-                        const updatedResponse = await mailService.fetchEmails(currentAccount ,currentFolder, pageForBackend, 20, searchQuery || "");
-                        if (!isActive) return;
-                        updateMailState(updatedResponse);
-                    }catch (error){
-                        console.error("Error syncing emails:", error);
-                    }finally {
-                        setIsSyncing(false);
-                    }
-                }, 500);
-            }
-        }catch (error){
-            console.error("Error fetching emails:", error);
-            setLoading(false);
-        }
-    };
 
     const formatDate = (date) => {
         if (!date) return "";
@@ -178,17 +199,27 @@ function Inbox() {
     };
 
     const handleFolderClick = (accountId, folderName) => {
-        setCurrentPage(1);
-        setSelectedMail(null);
+        if (!accountId || !folderName) return;
 
-        if (accountId && folderName){
-            const account = accounts.find(acc => acc.id === accountId);
-            if (account){
-                setCurrentAccount(account.email);
-                const mappedFolder = folderName.toUpperCase() === "INBOX" ? "INBOX" : folderName;
-                setCurrentFolder(mappedFolder);
+        const account = accounts.find(acc => acc.id === accountId);
+        if (!account) return;
+
+        const targetFolder = folderName.toUpperCase();
+        const targetAccount = account.email;
+
+        if (currentAccount === targetAccount && currentFolder === targetFolder){
+            setSelectedMail(null);
+            if (currentPage === 1){
+                return;
             }
         }
+
+        setCurrentPage(1);
+        setSelectedMail(null);
+        setMails([]);
+
+        setCurrentAccount(targetAccount);
+        setCurrentFolder(targetFolder);
     };
 
     const openCompose = (email = "") => {

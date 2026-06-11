@@ -10,6 +10,7 @@ import com.daraxtlar.quantummail.repository.MailRepository;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.util.ByteArrayDataSource;
+import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
@@ -20,10 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -41,6 +39,8 @@ public class MailService {
     @Autowired
     private EmailCryptoService emailCryptoService;
 
+    private final ThreadLocal<Map<String, String>> threadLocalFolderMap = new ThreadLocal<>();
+
     private final ThreadLocal<Store> threadLocalStore = new ThreadLocal<>();
     private final Set<String> activeSyncs = ConcurrentHashMap.newKeySet();
 
@@ -54,6 +54,8 @@ public class MailService {
         if (store != null) {
             closeQuietly(store);
         }
+
+        threadLocalFolderMap.remove();
 
         EmailAddress account = emailAddressRepository.findByEmailAddressAndUserId(accountEmail, userId)
                 .orElseThrow(() -> new SecurityException("Konto email nie znalezione: " + accountEmail));
@@ -86,6 +88,29 @@ public class MailService {
         try{
             getConnectedStore(accountEmail, userId);
             folder = threadLocalStore.get().getFolder(folderToUse);
+
+            if ("STARRED".equalsIgnoreCase(folderToUse)) {
+                boolean isGmail = false;
+                try {
+                    if (threadLocalStore.get().getFolder("[Gmail]").exists()) {
+                        isGmail = true;
+                    }
+                } catch (Exception ignored) {}
+
+                if (!isGmail) {
+                    System.out.println("[SYNC] Pomijam fizyczną synchronizację folderu STARRED dla konta nie-Gmail (gwiazdki aktualizują się automatycznie z INBOX/Wysłane).");
+                    return true;
+                }
+            }
+
+            String realFolderName = getRealFolderName(threadLocalStore.get(), folderToUse);
+            folder = threadLocalStore.get().getFolder(realFolderName);
+
+            if (folder == null || !folder.exists()) {
+                System.err.println("[SYNC ERROR] Folder " + folderToUse + " (zmapowany na: " + realFolderName + ") nie istnieje na serwerze dla konta " + accountEmail);
+                return false;
+            }
+
             folder.open(Folder.READ_ONLY);
 
             int totalMessages = folder.getMessageCount();
@@ -130,7 +155,9 @@ public class MailService {
                     imapMail.setSentDate(message.getSentDate() != null ? message.getSentDate() : new java.util.Date());
 
                     if (message.getFrom() != null && message.getFrom().length > 0) {
-                        imapMail.setSender(((InternetAddress) message.getFrom()[0]).getAddress());
+                        if (message.getFrom()[0] instanceof InternetAddress internetAddress) {
+                            imapMail.setSender(internetAddress.getAddress());
+                        }
                     } else {
                         imapMail.setSender("Unknown@domain.com");
                     }
@@ -140,7 +167,6 @@ public class MailService {
                     imapMail.setStarred(message.isSet(Flags.Flag.FLAGGED));
 
                     imapMailRepository.save(imapMail);
-                    return true;
                 }
             }
         }catch (Exception e){
@@ -154,13 +180,80 @@ public class MailService {
         return true;
     }
 
+    private Map<String, String> detectFolders(Store store) {
+        Map<String, String> folderMap = new HashMap<>();
+        folderMap.put("INBOX", "INBOX");
+
+        try {
+            Folder[] allFolders = store.getDefaultFolder().list("*");
+            for (Folder folder : allFolders) {
+                String nameLower = folder.getName().toLowerCase();
+                String fullName = folder.getFullName();
+
+                try {
+                    java.lang.reflect.Method getAttributesMethod = folder.getClass().getMethod("getAttributes");
+                    String[] attributes = (String[]) getAttributesMethod.invoke(folder);
+
+                    if (attributes != null) {
+                        for (String attr : attributes) {
+                            if (attr.equalsIgnoreCase("\\Sent")) folderMap.put("SENT", fullName);
+                            else if (attr.equalsIgnoreCase("\\Trash")) folderMap.put("TRASH", fullName);
+                            else if (attr.equalsIgnoreCase("\\Junk") || attr.equalsIgnoreCase("\\Spam")) folderMap.put("SPAM", fullName);
+                            else if (attr.equalsIgnoreCase("\\Drafts")) folderMap.put("DRAFTS", fullName);
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+
+                if (!folderMap.containsKey("SPAM") && (nameLower.contains("spam") || nameLower.contains("niechciane") || nameLower.contains("junk") || nameLower.contains("śmieci") || nameLower.contains("smieci"))) {
+                    folderMap.put("SPAM", fullName);
+                }
+                if (!folderMap.containsKey("SENT") && (nameLower.contains("sent") || nameLower.contains("wysłane") || nameLower.contains("wyslane"))) {
+                    folderMap.put("SENT", fullName);
+                }
+                if (!folderMap.containsKey("TRASH") && (nameLower.contains("trash") || nameLower.contains("kosz") || nameLower.contains("usunięte") || nameLower.contains("usuniete"))) {
+                    folderMap.put("TRASH", fullName);
+                }
+                if (!folderMap.containsKey("DRAFTS") && (nameLower.contains("draft") || nameLower.contains("szablony") || nameLower.contains("robocze"))) {
+                    folderMap.put("DRAFTS", fullName);
+                }
+            }
+
+            try {
+                if (store.getFolder("[Gmail]").exists()) {
+                    folderMap.put("STARRED", "[Gmail]/Starred");
+                }
+            } catch (Exception ignored) {}
+
+        } catch (Exception e) {
+            System.err.println("[IMAP DETECT ERROR] Nie udało się automatycznie zmapować folderów: " + e.getMessage());
+        }
+        return folderMap;
+    }
+
+    private String getRealFolderName(Store store, String folderName) {
+        String cleaned = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName.trim();
+        String upper = cleaned.toUpperCase();
+
+        if ("INBOX".equals(upper)) return "INBOX";
+
+        Map<String, String> cachedMap = threadLocalFolderMap.get();
+        if (cachedMap == null) {
+            System.out.println("[IMAP] Pierwsze zapytanie w sesji - skanuję strukturę folderów serwera...");
+            cachedMap = detectFolders(store);
+            threadLocalFolderMap.set(cachedMap);
+        }
+
+        return cachedMap.getOrDefault(upper, cleaned);
+    }
+
     public int getFolderMessageCount(Long userId, String accountEmail, String folderName) {
-        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
 
         try{
             getConnectedStore(accountEmail, userId);
-            folder = threadLocalStore.get().getFolder(folderToUse);
+            String realFolderName = getRealFolderName(threadLocalStore.get(), folderName);
+            folder = threadLocalStore.get().getFolder(realFolderName);
             folder.open(Folder.READ_ONLY);
             return folder.getMessageCount();
         } catch (Exception e) {
@@ -214,12 +307,12 @@ public class MailService {
     }
 
     public EmailMessage getEmailMessage(Long userId, String accountEmail ,String folderName, long uid) {
-        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
 
         try {
             getConnectedStore(accountEmail, userId);
-            folder = threadLocalStore.get().getFolder(folderToUse);
+            String realFolderName = getRealFolderName(threadLocalStore.get(), folderName);
+            folder = threadLocalStore.get().getFolder(realFolderName);
             folder.open(Folder.READ_WRITE);
 
             if (folder instanceof UIDFolder uidFolder) {
@@ -230,10 +323,11 @@ public class MailService {
                         message.setFlag(Flags.Flag.SEEN, true);
                     }
 
+                    String uniformFolder = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName.toUpperCase();
                     try {
                         imapMailRepository.findByAccountEmailAndFolderNameAndUid(
                                 accountEmail,
-                                folderToUse.toUpperCase(),
+                                uniformFolder,
                                 String.valueOf(uid))
                                 .ifPresent(localMail -> {
                                     if (!localMail.isRead()){
@@ -294,12 +388,12 @@ public class MailService {
 
 
     public byte[] downloadAttachment(Long userId,String accountEmail,String folderName, long uid, String fileName) {
-        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
 
         try {
             getConnectedStore(accountEmail, userId);
-            folder = threadLocalStore.get().getFolder(folderToUse);
+            String realFolderName = getRealFolderName(threadLocalStore.get(), folderName);
+            folder = threadLocalStore.get().getFolder(realFolderName);
             folder.open(Folder.READ_ONLY);
             Message message = ((UIDFolder) folder).getMessageByUID(uid);
 
@@ -364,11 +458,11 @@ public class MailService {
     }
 
     public Email prepareBaseEmailFromImap(Long userId, String accountEmail, String folderName, long uid) {
-        String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
         Folder folder = null;
         try {
             getConnectedStore(accountEmail, userId);
-            folder = threadLocalStore.get().getFolder(folderToUse);
+            String realFolderName = getRealFolderName(threadLocalStore.get(), folderName);
+            folder = threadLocalStore.get().getFolder(realFolderName);
             folder.open(Folder.READ_ONLY);
 
             if (folder instanceof UIDFolder uidFolder) {
