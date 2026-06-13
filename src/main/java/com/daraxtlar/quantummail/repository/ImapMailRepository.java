@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Date;
 import java.util.Optional;
 
 @Repository
@@ -35,5 +36,7 @@ public interface ImapMailRepository extends JpaRepository<ImapMail, Long> {
                                @Param("folderName") String folderName,
                                @Param("query") String query,
                                Pageable pageable);
+
+    Optional<ImapMail> findFirstByAccountEmailAndSenderAndSubjectAndSentDate(String accountEmail, String senderEmail, String subject, Date sentDate);
 
 }

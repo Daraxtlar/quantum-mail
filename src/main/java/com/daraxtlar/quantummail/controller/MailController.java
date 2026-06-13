@@ -3,6 +3,7 @@ package com.daraxtlar.quantummail.controller;
 import com.daraxtlar.quantummail.entity.ImapMail;
 import com.daraxtlar.quantummail.entity.Mail;
 import com.daraxtlar.quantummail.model.EmailMessage;
+import com.daraxtlar.quantummail.model.MoveMailRequest;
 import com.daraxtlar.quantummail.service.JwtService;
 import com.daraxtlar.quantummail.service.MailService;
 import com.daraxtlar.quantummail.service.SendEmailService;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -217,6 +219,36 @@ public class MailController {
         Long userId = getUserIdFromHeader(bearerToken);
         List<String> accounts = mailService.getUserEmailAccounts(userId);
         return ResponseEntity.ok(accounts);
+    }
+
+    @PostMapping("/move")
+    public ResponseEntity<Map<String, Object>> moveMail(
+            @RequestHeader("Authorization") String bearerToken,
+            @RequestBody MoveMailRequest request){
+        Long userId = getUserIdFromHeader(bearerToken);
+
+        boolean isMoved = mailService.moveEmailToFolder(
+                userId,
+                request.getAccountEmail(),
+                request.getSourceFolderName(),
+                request.getTargetFolderName(),
+                request.getUid(),
+                request.getSender(),
+                request.getSubject(),
+                request.getSentDate()
+        );
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (isMoved) {
+            response.put("success", true);
+            response.put("message", "Mail moved successfully");
+            return ResponseEntity.ok(response);
+        }else {
+            response.put("success", false);
+            response.put("message", "Mail not moved successfully");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
 
 }

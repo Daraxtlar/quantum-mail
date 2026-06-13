@@ -1,11 +1,28 @@
 import "../styles/Mail-list.css";
 import MailItem from "./MailItem.jsx";
-import {Archive, Funnel, MoveRight, Trash2, Star, ChevronRight, ChevronLeft, Loader2} from "lucide-react"
-import {useEffect, useState} from "react";
+import {Funnel, MoveRight, Trash2, Star, ChevronRight, ChevronLeft, Loader2} from "lucide-react"
+import { useEffect, useRef, useState} from "react";
+import {mailService} from "../services/MailService.js";
 
 
-function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPage, totalPages= 1,onPageChange, loading}) {
+function MailList({
+                      mails = [],
+                      searchQuery="",
+                      path = "",
+                      onMailClick,
+                      currentPage,
+                      totalPages= 1,
+                      onPageChange,
+                      loading,
+                      folder = "INBOX",
+                      accountEmail = "",
+                      onRefresh}) {
     const [selectedMails, setSelectedMails] = useState([]);
+    const [isMoveMenuOpen, setIsMoveMenuOpen] = useState(false);
+    const [isActionLoading, setIsActionLoading] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const availableFolders = ["INBOX", "DRAFTS", "SENT", "STARRED", "SPAM", "TRASH"];
 
     const currentMails = searchQuery.trim()
         ? mails.filter(mail =>
@@ -18,7 +35,20 @@ function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPag
 
     useEffect(() => {
         setSelectedMails([]);
-    }, [mails]);
+    }, [folder, currentPage, searchQuery]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsMoveMenuOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     const allCurrentSelected = currentMails.length > 0 && currentMails.every(m => selectedMails.includes(m.id));
 
@@ -51,19 +81,40 @@ function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPag
         });
     };
 
+    const executeMoveMails = async (targetFolder) => {
+        if (!accountEmail || selectedMails.length === 0) return;
+
+        setIsActionLoading(true);
+
+        try{
+            const mailsToMove = mails.filter(m => selectedMails.includes(m.id));
+            await Promise.all(
+                mailsToMove.map(mail =>
+                mailService.moveMail(accountEmail, folder, targetFolder, mail.id, mail.sender, mail.subject, mail.date)
+                )
+            );
+
+            setSelectedMails([]);
+            setIsMoveMenuOpen(false);
+            onRefresh?.();
+    }catch (err) {
+            console.error("Error moving mails: ", err);
+            alert("Failed to move mails: " + err.message);
+        }finally {
+            setIsActionLoading(false);
+        }
+    };
+
     const handleDelete = () => {
-        //TODO: Implement delete functionality, send selectedMails to backend for deletion
-        setSelectedMails([])
+        executeMoveMails("TRASH");
     };
 
     const handleArchive = () => {
-        //TODO: Implement archive functionality, send selectedMails to backend for archiving
-        setSelectedMails([])
+        executeMoveMails("TRASH");
     };
 
     const handleStar = () => {
-        //TODO: Implement star functionality, send selectedMails to backend for starring
-        setSelectedMails([])
+        executeMoveMails("STARRED");
     };
 
     const goToPage = (page) => {
@@ -76,34 +127,57 @@ function MailList({mails = [], searchQuery="",path = "", onMailClick, currentPag
             <div className={"mail-toolbar"}>
                 <div className={"toolbar-left"}>
                     {currentMails.length > 0 && (
-                        <input type={"checkbox"} checked={allCurrentSelected} onChange={handleSelectAll}/>
+                        <input type={"checkbox"} checked={allCurrentSelected} onChange={handleSelectAll} disabled={isActionLoading}/>
                     )}
 
                     {selectedMails.length > 0 && (
-                        <div className={"action-buttons"}>
-                            <button className={"action-btn"} onClick={handleArchive} title={"Archive"}>
-                                <Archive size={16}/>
-                            </button>
+                        <div className={`action-buttons ${isActionLoading ? "opacity-50 pointer-events-none" : ""}`}>
 
-                            <button className={"action-btn"} onClick={handleDelete} title={"Delete"}>
+                            <button className={"action-btn"} onClick={handleDelete} title={"Delete"} disabled={isActionLoading}>
                                 <Trash2 size={16}/>
                             </button>
 
-                            <button className={"action-btn"} onClick={handleStar} title={"Star"}>
+                            <button className={"action-btn"} onClick={handleStar} title={"Star"} disabled={isActionLoading}>
                                 <Star size={16}/>
                             </button>
 
-                            <button className={"action-btn"} title={"Move"}>
-                                <MoveRight size={16}/>
-                            </button>
-                            <span className={"selected-count"}>{selectedMails.length} selected</span>
+                            <div className="move-dropdown-container" ref={dropdownRef}>
+                                <button
+                                    className={`action-btn ${isMoveMenuOpen ? "active" : ""}`}
+                                    onClick={() => setIsMoveMenuOpen(!isMoveMenuOpen)}
+                                    title={"Move to folder"}
+                                    disabled={isActionLoading}
+                                >
+                                    <MoveRight size={16}/>
+                                </button>
+
+                                {isMoveMenuOpen && (
+                                    <div className="move-dropdown-menu">
+                                        {availableFolders
+                                            .filter(f => f !== folder.toUpperCase())
+                                            .map(f => (
+                                                <div
+                                                    key={f}
+                                                    className="dropdown-item"
+                                                    onClick={() => executeMoveMails(f)}
+                                                >
+                                                    {f}
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                )}
+                            </div>
+
+                            <span className={"selected-count"}>
+                                {isActionLoading ? "Moving..." : `${selectedMails.length} selected`}
+                            </span>
                         </div>
                     )}
                 </div>
 
                 <div className={"toolbar-right"}>
                     <span className={"path-text"}>{path}</span>
-
 
                     <button className={"filter-btn"}>
                         <Funnel size={16}/>

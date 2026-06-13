@@ -18,6 +18,7 @@ function Inbox() {
     const [initialToEmail, setInitialToEmail] = useState("");
     const [isSyncing, setIsSyncing] = useState(false);
     const debounceTimeoutRef = useRef(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -137,7 +138,7 @@ function Inbox() {
                 clearTimeout(debounceTimeoutRef.current);
             }
         }
-    }, [currentAccount, currentFolder, currentPage, searchQuery]);
+    }, [currentAccount, currentFolder, currentPage, searchQuery, refreshTrigger]);
 
     const updateMailState = (response) => {
         const formattedMails = response.emails.map(email => ({
@@ -148,7 +149,7 @@ function Inbox() {
             subject: email.subject || "(no subject)",
             preview: email.snippet || "",
             body: email.content || "",
-            date: formatDate(email.sentDate),
+            date: email.sentDate,
             read: email.read || false,
             attachments: email.attachments || [],
             color: !email.read ? "#7CFF5B" : undefined,
@@ -158,18 +159,6 @@ function Inbox() {
         setTotalCount(response.totalCount);
     }
 
-
-    const formatDate = (date) => {
-        if (!date) return "";
-        const d = new Date(date);
-        const now = new Date();
-        const diffMs = now - d;
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        if (days === 0) return "Today";
-        if (days === 1) return "Yesterday";
-        if (days < 7) return `${days} ago`;
-        return d.toLocaleDateString();
-    }
 
     const getCurrentMails = () => mails;
 
@@ -183,7 +172,7 @@ function Inbox() {
                 ...fullMail,
                 sender: fullMail.from,
                 content: fullMail.content,
-                date: formatDate(fullMail.sentDate),
+                date: fullMail.sentDate,
                 color: undefined
             };
             setSelectedMail(formattedDetail);
@@ -270,6 +259,9 @@ function Inbox() {
                         totalPages = {totalPages}
                         onPageChange={setCurrentPage}
                         loading={loading}
+                        folder={currentFolder}
+                        accountEmail={currentAccount}
+                        onRefresh={() => setRefreshTrigger(prev => prev + 1)}
                     />
                 )}
             </div>

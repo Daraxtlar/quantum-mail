@@ -49,6 +49,16 @@ export const mailService = {
         return response.json();
     },
 
+    moveMail: async (accountEmail, sourceFolderName, targetFolderName, uid, sender, subject, sentDate) => {
+        const response = await fetch(`${API_URL}/move`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({accountEmail, sourceFolderName, targetFolderName, uid, sender, subject, sentDate})
+        });
+        await handleResponse(response);
+        return await response.json();
+    },
+
     fetchSuggestions: async (senderEmail) => {
         const response = await fetch(`${API_URL}/suggestions?senderEmail=${encodeURIComponent(senderEmail)}`, {
             headers: getHeaders()

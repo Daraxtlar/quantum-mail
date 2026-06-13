@@ -97,23 +97,24 @@ public class MailService {
 
         try{
             getConnectedStore(accountEmail, userId);
-            folder = threadLocalStore.get().getFolder(folderToUse);
+            Store store = threadLocalStore.get();
 
             if ("STARRED".equalsIgnoreCase(folderToUse)) {
                 boolean isGmail = false;
                 try {
-                    if (threadLocalStore.get().getFolder("[Gmail]").exists()) {
+                    if (store.getFolder("[Gmail]").exists()) {
                         isGmail = true;
                     }
                 } catch (Exception ignored) {}
 
                 if (!isGmail) {
                     System.out.println("[SYNC] Pomijam fizyczną synchronizację folderu STARRED dla konta nie-Gmail (gwiazdki aktualizują się automatycznie z INBOX/Wysłane).");
+                    syncNonGmailStarred(store, accountEmail);
                     return true;
                 }
             }
 
-            String realFolderName = getRealFolderName(threadLocalStore.get(), folderToUse);
+            String realFolderName = getRealFolderName(store, folderToUse);
             folder = threadLocalStore.get().getFolder(realFolderName);
 
             if (folder == null || !folder.exists()) {
@@ -143,26 +144,65 @@ public class MailService {
             fp.add(FetchProfile.Item.CONTENT_INFO);
             folder.fetch(messages, fp);
 
+            String uniformFolder = folderToUse.toUpperCase();
+
             for (int i = messages.length - 1; i >= 0; i--) {
                 Message message = messages[i];
 
-                String uid;
-                if (folder instanceof UIDFolder uidFolder) {
-                    uid = String.valueOf(uidFolder.getUID(message));
-                } else {
-                    uid = String.valueOf(message.getMessageNumber());
+                String uid = (folder instanceof UIDFolder uidFolder)
+                        ? String.valueOf(uidFolder.getUID(message))
+                        : String.valueOf(message.getMessageNumber());
+
+                boolean serverRead = message.isSet(Flags.Flag.SEEN);
+                boolean serverStarred = message.isSet(Flags.Flag.FLAGGED);
+
+                String senderEmail = "Unknown@domain.com";
+                if (message.getFrom() != null && message.getFrom().length > 0) {
+                    if (message.getFrom()[0] instanceof InternetAddress internetAddress) {
+                        senderEmail = internetAddress.getAddress();
+                    }
                 }
 
-                boolean exists = imapMailRepository.existsByAccountEmailAndFolderNameAndUid(
-                        accountEmail, folderToUse.toUpperCase(), uid);
+                Optional<ImapMail> existingMailOpt = imapMailRepository.findByAccountEmailAndFolderNameAndUid(
+                        accountEmail, uniformFolder, uid);
 
-                if (!exists) {
+                if (existingMailOpt.isPresent()) {
+                    ImapMail localMail = existingMailOpt.get();
+                    boolean isChanged = false;
+
+                    if (localMail.isRead() != serverRead) {
+                        localMail.setRead(serverRead);
+                        isChanged = true;
+                    }
+
+                    if (localMail.isStarred() != serverStarred) {
+                        localMail.setStarred(serverStarred);
+                        isChanged = true;
+                    }
+
+                    if (isChanged) {
+                        imapMailRepository.save(localMail);
+                    }
+                } else {
+                    Date sentDate = message.getSentDate() != null ? message.getSentDate() : new Date();
+
+                    Optional<ImapMail> duplicateCheck = imapMailRepository.findFirstByAccountEmailAndSenderAndSubjectAndSentDate(accountEmail, senderEmail, message.getSubject(), sentDate);
+                    if (duplicateCheck.isPresent()) {
+                        ImapMail existingCrossMail = duplicateCheck.get();
+                        if (existingCrossMail.isStarred() != serverStarred || existingCrossMail.isRead() != serverRead) {
+                            existingCrossMail.setStarred(serverStarred);
+                            existingCrossMail.setRead(serverRead);
+                            imapMailRepository.save(existingCrossMail);
+                        }
+                        continue;
+                    }
+
                     ImapMail imapMail = new ImapMail();
                     imapMail.setUid(uid);
                     imapMail.setAccountEmail(accountEmail);
-                    imapMail.setFolderName(folderToUse.toUpperCase());
+                    imapMail.setFolderName(uniformFolder);
                     imapMail.setSubject(message.getSubject());
-                    imapMail.setSentDate(message.getSentDate() != null ? message.getSentDate() : new java.util.Date());
+                    imapMail.setSentDate(message.getSentDate() != null ? message.getSentDate() : new Date());
 
                     if (message.getFrom() != null && message.getFrom().length > 0) {
                         if (message.getFrom()[0] instanceof InternetAddress internetAddress) {
@@ -173,8 +213,8 @@ public class MailService {
                     }
 
                     imapMail.setSnippet(extractSnippet(message));
-                    imapMail.setRead(message.isSet(Flags.Flag.SEEN));
-                    imapMail.setStarred(message.isSet(Flags.Flag.FLAGGED));
+                    imapMail.setRead(serverRead);
+                    imapMail.setStarred(serverStarred);
 
                     imapMailRepository.save(imapMail);
                 }
@@ -188,6 +228,68 @@ public class MailService {
             closeQuietly(folder);
         }
         return true;
+    }
+
+    private void syncNonGmailStarred(Store store, String accountEmail) throws Exception {
+        Folder inbox = store.getFolder("INBOX");
+
+        if (inbox == null || !inbox.exists()) return;
+        inbox.open(Folder.READ_ONLY);
+
+        Message[] messages = inbox.search(new jakarta.mail.search.FlagTerm(new Flags(Flags.Flag.FLAGGED), true));
+
+        if (messages.length == 0) {
+            inbox.close(false);
+            return;
+        }
+
+        FetchProfile fp = new FetchProfile();
+        fp.add(FetchProfile.Item.ENVELOPE);
+        fp.add(UIDFolder.FetchProfileItem.UID);
+        fp.add(FetchProfile.Item.CONTENT_INFO);
+        inbox.fetch(messages, fp);
+
+        for (Message message : messages) {
+            String uid = (inbox instanceof UIDFolder uidFolder)
+                    ? String.valueOf(uidFolder.getUID(message))
+                    : String.valueOf(message.getMessageNumber());
+
+            boolean serverRead = message.isSet(Flags.Flag.SEEN);
+
+            Optional<ImapMail> existingMailOpt = imapMailRepository.findByAccountEmailAndFolderNameAndUid(
+                    accountEmail, "INBOX", uid);
+
+            if (existingMailOpt.isPresent()) {
+                ImapMail localMail = existingMailOpt.get();
+                if (!localMail.isStarred() || localMail.isRead() != serverRead) {
+                    localMail.setStarred(true);
+                    localMail.setRead(serverRead);
+                    imapMailRepository.save(localMail);
+                }
+            }else {
+                ImapMail imapMail = new ImapMail();
+                imapMail.setUid(uid);
+                imapMail.setAccountEmail(accountEmail);
+                imapMail.setFolderName("INBOX");
+                imapMail.setSubject(message.getSubject());
+                imapMail.setSentDate(message.getSentDate() != null ? message.getSentDate() : new java.util.Date());
+
+                if (message.getFrom() != null && message.getFrom().length > 0) {
+                    if (message.getFrom()[0] instanceof InternetAddress internetAddress) {
+                        imapMail.setSender(internetAddress.getAddress());
+                    }
+                } else {
+                    imapMail.setSender("Unknown@domain.com");
+                }
+
+                imapMail.setSnippet(extractSnippet(message));
+                imapMail.setRead(serverRead);
+                imapMail.setStarred(true);
+
+                imapMailRepository.save(imapMail);
+            }
+        }
+        inbox.close(false);
     }
 
     private Map<String, String> detectFolders(Store store) {
@@ -315,6 +417,111 @@ public class MailService {
             try { resource.close(); } catch (Exception ignored) {}
         }
     }
+
+    @Transactional
+    public boolean moveEmailToFolder(Long userId, String accountEmail, String sourceFolderName, String targetFolderName,
+                                     long uid, String sender, String subject, java.util.Date sentDate) {
+        String uniformSourceFolder = (sourceFolderName == null || sourceFolderName.isEmpty()) ? "INBOX" : sourceFolderName.toUpperCase();
+        String uniformTargetFolder = (targetFolderName == null) ? "" : targetFolderName.toUpperCase();
+
+        Folder sourceFolder = null;
+        boolean isSuccess = false;
+        boolean shouldExpunge = false;
+
+        boolean isStarredAction = "STARRED".equals(uniformTargetFolder);
+
+        boolean isMovingFromStarredToInbox = "STARRED".equals(uniformSourceFolder) && "INBOX".equals(uniformTargetFolder);
+
+        try {
+            getConnectedStore(accountEmail, userId);
+            Store store = threadLocalStore.get();
+
+            Optional<ImapMail> localMailOpt;
+            if ("STARRED".equals(uniformSourceFolder)) {
+                localMailOpt = imapMailRepository.findFirstByAccountEmailAndSenderAndSubjectAndSentDate(
+                        accountEmail, sender, subject, sentDate);
+            } else {
+                localMailOpt = imapMailRepository.findByAccountEmailAndFolderNameAndUid(
+                        accountEmail, uniformSourceFolder, String.valueOf(uid));
+            }
+
+            if (localMailOpt.isEmpty()) {
+                System.err.println("[MOVE ERROR] Nie znaleziono maila w bazie danych.");
+                return false;
+            }
+
+            ImapMail localMail = localMailOpt.get();
+            String realSourceFolderName = localMail.getFolderName();
+            long realImapUid = Long.parseLong(localMail.getUid());
+
+            String realSourceFolder = getRealFolderName(store, realSourceFolderName);
+            sourceFolder = store.getFolder(realSourceFolder);
+
+            if (sourceFolder == null || !sourceFolder.exists()) {
+                System.err.println("[MOVE ERROR] Folder źródłowy: " + realSourceFolder + " nie istnieje na serwerze.");
+                return false;
+            }
+
+            sourceFolder.open(Folder.READ_WRITE);
+
+            if (sourceFolder instanceof UIDFolder uidFolder) {
+                Message message = uidFolder.getMessageByUID(realImapUid);
+
+                if (message == null) {
+                    System.err.println("[MOVE ERROR] Nie znaleziono wiadomości o UID " + realImapUid + " w folderze " + realSourceFolder);
+                    return false;
+                }
+
+                if (isStarredAction || isMovingFromStarredToInbox) {
+                    boolean nextStarredState;
+
+                    if (isMovingFromStarredToInbox) {
+                        nextStarredState = false;
+                    } else {
+                        nextStarredState = !localMail.isStarred();
+                    }
+
+                    message.setFlag(Flags.Flag.FLAGGED, nextStarredState);
+                    isSuccess = true;
+
+                    localMail.setStarred(nextStarredState);
+                    imapMailRepository.save(localMail);
+
+                    System.out.println("[DB UPDATE] Przeniesiono/Zmieniono stan STARRED na: " + nextStarredState + " w folderze: " + realSourceFolderName);
+
+                } else {
+                    String realTargetFolder = getRealFolderName(store, uniformTargetFolder);
+                    Folder targetFolder = store.getFolder(realTargetFolder);
+
+                    if (targetFolder == null || !targetFolder.exists()) {
+                        System.err.println("[MOVE ERROR] Folder docelowy: " + realTargetFolder + " nie istnieje.");
+                        return false;
+                    }
+
+                    sourceFolder.copyMessages(new Message[]{message}, targetFolder);
+                    message.setFlag(Flags.Flag.DELETED, true);
+
+                    isSuccess = true;
+                    shouldExpunge = true;
+
+                    imapMailRepository.delete(localMail);
+                    System.out.println("[DB UPDATE] Usunięto stary rekord maila z folderu: " + realSourceFolderName);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[MOVE ERROR] Błąd podczas operacji na mailu.");
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (sourceFolder != null && sourceFolder.isOpen()) {
+                try {
+                    sourceFolder.close(shouldExpunge);
+                } catch (Exception ignored) {}
+            }
+        }
+        return isSuccess;
+    }
+
 
     public EmailMessage getEmailMessage(Long userId, String accountEmail ,String folderName, long uid) {
         Folder folder = null;
