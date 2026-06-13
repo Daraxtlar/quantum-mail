@@ -117,6 +117,9 @@ body {
     flex-direction: column;
     gap: 20px;
     padding: 24px 0;
+
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .setting-group{
@@ -155,6 +158,10 @@ body {
     padding: 24px;
     max-width: 500px;
     color: var(--text-primary);
+
+    max-height: 80vh;
+    overflow-y: auto;
+
 }
 
 .settings-section {
@@ -236,4 +243,89 @@ body {
 .logout-btn:hover {
     background-color: var(--border-medium);
     opacity: 1;
+}
+
+.alert-error {
+    border-left-color: var(--error-color);
+}
+
+.connected-accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.accounts-empty {
+    font-style: italic;
+    text-align: left;
+    margin: 0;
+}
+
+.account-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--settings-search-bg);
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-medium);
+}
+
+.account-email-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.delete-button {
+    padding: 6px 14px;
+    font-size: 13px;
+    margin: 0;
+}
+
+.scrollable-contacts-container {
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 6px;
+    margin-top: 10px;
+}
+
+.scrollable-contacts-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable-contacts-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollable-contacts-container::-webkit-scrollbar-thumb {
+    background-color: var(--border-medium);
+    border-radius: 10px;
+}
+
+.add-suggestion-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.add-suggestion-form input {
+    flex: 1;
+    margin: 0;
+}
+
+.add-suggestion-form button {
+    white-space: nowrap;
+    padding: 10px 16px;
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    background-color: transparent;
+    border-color: var(--border-medium);
+}
+
+.suggestion-item .delete-button {
+    padding: 4px 10px;
+    font-size: 12px;
 }

@@ -2,14 +2,18 @@ package com.daraxtlar.quantummail.service;
 
 import com.daraxtlar.quantummail.entity.EmailAddress;
 import com.daraxtlar.quantummail.entity.ImapMail;
+import com.daraxtlar.quantummail.entity.Mail;
+import com.daraxtlar.quantummail.entity.User;
 import com.daraxtlar.quantummail.model.Attachment;
 import com.daraxtlar.quantummail.model.EmailMessage;
 import com.daraxtlar.quantummail.repository.EmailAddressRepository;
 import com.daraxtlar.quantummail.repository.ImapMailRepository;
 import com.daraxtlar.quantummail.repository.MailRepository;
+import com.daraxtlar.quantummail.repository.UserRepository;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.util.ByteArrayDataSource;
+import jakarta.transaction.Transactional;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -19,8 +23,11 @@ import org.simplejavamail.email.EmailBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,6 +36,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MailService {
     @Autowired
     private MailRepository mailRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private ImapMailRepository imapMailRepository;
@@ -517,12 +527,44 @@ public class MailService {
         return mailRepository.findRecentRecipientsByAccount(userId, PageRequest.of(0, 20));
     }
 
+    @Transactional
+    public Mail addSuggestedRecipient(Long userId, String senderEmail, String recipientEmail) {
+        Optional<Mail> existingMail = mailRepository.findBySenderEmailAndRecipientEmailAndUserId(senderEmail, recipientEmail, userId);
+
+        if (existingMail.isPresent()) {
+            Mail mail = existingMail.get();
+            mail.setSentDate(LocalDateTime.now());
+            return mailRepository.save(mail);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        Mail newMail = new Mail();
+        newMail.setUser(user);
+        newMail.setSenderEmail(senderEmail);
+        newMail.setRecipientEmail(recipientEmail);
+        newMail.setSentDate(LocalDateTime.now());
+
+        return mailRepository.save(newMail);
+    }
+
+    @Transactional
+    public void deleteSuggestedRecipient(Long userId, String senderEmail, String recipientEmail) {
+        Mail mail = mailRepository.findBySenderEmailAndRecipientEmailAndUserId(senderEmail, recipientEmail, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Suggested recipient not found"));
+
+        mailRepository.delete(mail);
+    }
+
     public List<String> getUserEmailAccounts(Long userId) {
         return emailAddressRepository.findByUserId(userId)
                 .stream()
                 .map(EmailAddress::getEmailAddress)
                 .toList();
     }
+
+
 
     public org.springframework.data.domain.Page<ImapMail> getEmailsFromDb(Long userId, String accountEmail ,String folderName, String query, int page, int size) {
         boolean hasAccess = emailAddressRepository.findByEmailAddressAndUserId(accountEmail, userId).isPresent();

@@ -6,6 +6,7 @@ import com.daraxtlar.quantummail.repository.EmailAddressRepository;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.Transport;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -81,4 +82,13 @@ public class EmailAddressService {
     public List<EmailAddress> getAccountsByUserId(Long userId) {
         return emailAddressRepository.findByUserId(userId);
     }
+
+    @Transactional
+    public void deleteAccount(Long userId, String emailAddress) {
+        EmailAddress account = emailAddressRepository.findByEmailAddressAndUserId(emailAddress, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Email account not found"));
+
+        emailAddressRepository.delete(account);
+    }
+
 }

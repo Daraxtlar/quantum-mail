@@ -66,4 +66,25 @@ public class EmailAddressController {
         }
     }
 
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteEmailAccount(
+            @RequestHeader("Authorization") String bearerToken,
+            @RequestParam String emailAddress) {
+        try {
+            String token = bearerToken.substring(7);
+            Long userId = jwtService.getUserIdFromToken(token);
+
+            emailAddressService.deleteAccount(userId, emailAddress);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Account deleted successfully",
+                    "email", emailAddress));
+        }catch (ResponseStatusException e){
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason()));
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An unexpected error occurred"));
+        }
+    }
+
 }

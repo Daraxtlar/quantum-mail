@@ -65,6 +65,26 @@ export const mailService = {
         return await response.json();
     },
 
+    addSuggestion: async (senderEmail, recipientEmail) => {
+        const response = await fetch(`${API_URL}/suggestions/add`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ senderEmail, recipientEmail })
+        });
+        await handleResponse(response);
+        return await response.json();
+    },
+
+    deleteSuggestion: async (senderEmail, recipientEmail) => {
+        const queryParams = `?senderEmail=${encodeURIComponent(senderEmail)}&recipientEmail=${encodeURIComponent(recipientEmail)}`;
+        const response = await fetch(`${API_URL}/suggestions/delete${queryParams}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        await handleResponse(response);
+        return await response.json();
+    },
+
     syncEmails: async (accountEmail, folder) => {
         const token = localStorage.getItem('token');
         const response = await axios.post(`${API_URL}/sync`, null, {

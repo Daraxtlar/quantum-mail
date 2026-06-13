@@ -37,4 +37,14 @@ export const EmailAccountService = {
         await handleResponse(response);
         return await response.json();
     },
+
+    deleteAccount: async (emailAddress) => {
+        const response = await fetch(`${API_URL}/delete?emailAddress=${encodeURIComponent(emailAddress)}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+
+        await handleResponse(response);
+        return await response.json();
+    }
 };

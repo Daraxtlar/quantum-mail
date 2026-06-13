@@ -1,6 +1,7 @@
 package com.daraxtlar.quantummail.controller;
 
 import com.daraxtlar.quantummail.entity.ImapMail;
+import com.daraxtlar.quantummail.entity.Mail;
 import com.daraxtlar.quantummail.model.EmailMessage;
 import com.daraxtlar.quantummail.service.JwtService;
 import com.daraxtlar.quantummail.service.MailService;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -162,6 +164,51 @@ public class MailController {
     public ResponseEntity<List<String>> getGlobalSuggestions(@RequestHeader("Authorization") String bearerToken) {
         Long userId = getUserIdFromHeader(bearerToken);
         return ResponseEntity.ok(mailService.getGlobalSuggestedRecipients(userId));
+    }
+
+    @PostMapping("/suggestions/add")
+    public ResponseEntity<?> addSuggestion(
+            @RequestHeader("Authorization") String bearerToken,
+            @RequestBody Map<String, String> payload){
+        try{
+            Long userId = getUserIdFromHeader(bearerToken);
+            String senderEmail = payload.get("senderEmail");
+            String recipientEmail = payload.get("recipientEmail");
+
+            if (senderEmail == null || senderEmail.isEmpty() || recipientEmail == null || recipientEmail.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Both senderEmail and recipientEmail must be provided"));
+            }
+
+            Mail saved = mailService.addSuggestedRecipient(userId, senderEmail, recipientEmail);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Suggested recipient added successfully",
+                    "id", saved.getId(),
+                    "recipientEmail", saved.getRecipientEmail()));
+        }catch (ResponseStatusException e){
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason()));
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/suggestions/delete")
+    public ResponseEntity<?> deleteSuggestion(
+            @RequestHeader("Authorization") String bearerToken,
+            @RequestParam String senderEmail,
+            @RequestParam String recipientEmail) {
+        try {
+            Long userId = getUserIdFromHeader(bearerToken);
+
+            mailService.deleteSuggestedRecipient(userId, senderEmail, recipientEmail);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Suggested recipient deleted successfully",
+                    "recipientEmail", recipientEmail));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/accounts")
