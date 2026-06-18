@@ -2,11 +2,13 @@ import "../styles/Compose-mail.css";
 import {X, Paperclip, Send, Trash2, Minus, Maximize2} from "lucide-react";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {mailService} from "../services/MailService.js";
+import PopupAlert from "./PopupAlert.jsx";
 
 function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
     const [availableSenders, setAvailableSenders] = useState([]);
     const [senderEmail, setSenderEmail] = useState(userEmail);
     const [suggestions, setSuggestions] = useState([]);
+    const [alert, setAlert] = useState(null);
 
     const [to, setTo] = useState(
         initialTo || (replyTo
@@ -40,7 +42,7 @@ function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
             .catch(err => {
                 console.error("Error fetching user email accounts:", err);
             })
-    })
+    }, [])
 
     useEffect(() => {
         if (senderEmail){
@@ -196,7 +198,11 @@ function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
 
     const handleSend = async () => {
         if (!to.trim()) {
-            alert("Recipient email is required.");
+            setAlert({
+                message: "Recipient email is required.",
+                type: "error",
+                action: () => setAlert(null)
+            })
             return;
         }
 
@@ -229,12 +235,23 @@ function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
             setSubject("");
             setBody("");
             setFiles([]);
-            onClose?.();
+            setAlert({
+                message: "Message sent successfully!",
+                type: "success",
+                action: () => {
+                    setAlert(null);
+                    onClose?.();
+                }
+            })
         }catch (error) {
             console.error("Error sending email:", error);
 
-            //TODO JAKIŚ LEPSZY ALERT
-             alert("Error sending email");
+            const errorMessage = error.response?.data?.message || "Failed to send the email. Please try again.";
+            setAlert({
+                message: errorMessage,
+                type: "error",
+                action: () => setAlert(null)
+            });
         } finally {
             setSending(false);
         }
@@ -274,6 +291,14 @@ function ComposeMail({onClose, userEmail, replyTo, folder, initialTo}) {
 
     return (
         <div className={"compose-overlay"}>
+            {alert && (
+                <PopupAlert
+                    message={alert.message}
+                    type={alert.type}
+                    onClose={alert.action || (() => setAlert(null))}
+                />
+            )}
+
             <div ref={windowRef} className={`compose-window ${isDetached ? "detached" : ""}`} style={windowStyle}>
                 <div className={`compose-header ${isDetached ? "draggable" : ""}`} onMouseDown={isDetached ? handleMouseDown : undefined}>
                     <span className={"compose-title"}>{getTitle()}</span>

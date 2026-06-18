@@ -7,6 +7,7 @@ import MailDetail from "../components/MailDetail.jsx";
 import ComposeMail from "../components/ComposeMail.jsx";
 import {mailService} from "../services/MailService.js";
 import {EmailAccountService} from "../services/EmailAccountService.js";
+import PopupAlert from "../components/PopupAlert.jsx";
 
 function Inbox() {
     const [accounts, setAccounts] = useState([]);
@@ -29,6 +30,8 @@ function Inbox() {
     const [searchQuery, setSearchQuery] = useState("");
     const [mails, setMails] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    const [alert, setAlert] = useState(null);
 
     const loadAccounts = async  () => {
         try {
@@ -54,7 +57,10 @@ function Inbox() {
             }
         }catch (error) {
             console.error("Error loading accounts:", error);
-            alert("Failed to load email accounts. Please refresh the page.");
+            setAlert({
+                message: "Failed to load email accounts. Please refresh the page.",
+                type: "error"
+            })
         }
     }
 
@@ -115,6 +121,10 @@ function Inbox() {
                         }catch (error){
                             if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
                                 console.error("Error syncing emails:", error);
+                                setAlert({
+                                    message: "Sync failed. Connection to mail server lost.",
+                                    type: "error"
+                                });
                             }
                         }finally {
                             setIsSyncing(false);
@@ -181,7 +191,10 @@ function Inbox() {
 
         }catch (error){
             console.error("Error fetching email details:", error);
-            alert("Failed to load email details. Please try again.");
+            setAlert({
+                message: "Failed to load email details. Please try again.",
+                type: "error"
+            });
         }finally {
             setLoading(false);
         }
@@ -234,6 +247,14 @@ function Inbox() {
 
     return (
         <div className={"inbox"}>
+            {alert && (
+                <PopupAlert
+                    message={alert.message}
+                    type={alert.type}
+                    onClose={() => setAlert(null)}
+                />
+            )}
+
             <Topbar onCompose={openCompose} onSearch={setSearchQuery}/>
             <div className={"layout"}>
                 <Sidebar

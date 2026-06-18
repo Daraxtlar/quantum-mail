@@ -18,25 +18,13 @@ function Settings() {
             <div className={"settings-wrapper"}>
                 <div className={"nav-options"}>
                     <ul>
-                        <li className={"option"} id={"general"} onClick={() => setSettingList("general")}>
-                            <i className={"icon-home"}></i>
-                            General
-                        </li>
                         <li className={"option"} id={"appearance"} onClick={() => setSettingList("appearance")}>
                             <i className={"icon-brush"}></i>
                             Appearance
                         </li>
-                        <li className={"option"} id={"components"} onClick={() => setSettingList("components")}>
-                            <i className={"icon-wrench"}></i>
-                            Components
-                        </li>
                         <li className={"option"} id={"integrations"} onClick={() => setSettingList("integrations")}>
                             <i className={"icon-flow-merge"}></i>
                             Integrations
-                        </li>
-                        <li className={"option"} id={"behavior"} onClick={() => setSettingList("behavior")}>
-                            <i className={"icon-cogs"}></i>
-                            Behavior
                         </li>
                         <li className={"option"} id={"account"} onClick={() => setSettingList("account")}>
                             <i className={"icon-user"}></i>

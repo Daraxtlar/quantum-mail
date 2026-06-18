@@ -4,7 +4,7 @@ import "../styles/Login.css";
 import {useState} from "react";
 import Modial from "../components/ResetPasswordModal.jsx"
 import { useNavigate } from "react-router-dom";
-import Alert from "../components/BadPasswordAlert.jsx";
+import Alert from "../components/PopupAlert.jsx";
 import {authService} from "../services/AuthService.js";
 
 function Login() {
@@ -12,7 +12,7 @@ function Login() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const navigate = useNavigate();
-    const [showAlert, setShowAlert] = useState(false)
+    const [alert, setAlert] = useState(null);
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -21,18 +21,25 @@ function Login() {
             await authService.login(username, password);
             navigate("/inbox");
         }catch (err){
-            setShowAlert(true);
+            console.error("Login error:", err);
+            const errorMessage = err.response?.data?.message || "Login failed. Please check your credentials and try again.";
+            setAlert({
+                message: errorMessage,
+                type: "error"
+            });
         }
     }
 
     return (
         <div className={"login-container"}>
 
-            <div className={"alert-holder"}>
-                {
-                    showAlert && <Alert />
-                }
-            </div>
+            {alert && (
+                <Alert
+                    message={alert.message}
+                    type={alert.type}
+                    onClose={() => setAlert(null)}
+                />
+            )}
             <div className={"login-card"}>
                 <div className={"login-header"}>
 

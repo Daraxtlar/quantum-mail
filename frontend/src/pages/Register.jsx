@@ -3,11 +3,13 @@ import {Link, useNavigate} from 'react-router-dom';
 import "../styles/Login.css";
 import {useState} from "react";
 import {authService} from "../services/AuthService.js";
+import PopupAlert from "../components/PopupAlert.jsx";
 
 function Register() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [email, setEmail] = useState('')
+    const [alert, setAlert] = useState(null);
     const navigate = useNavigate();
 
     async function handleSubmit(e) {
@@ -15,15 +17,36 @@ function Register() {
 
         try {
             await authService.register(username, password, email);
-            navigate("/login");
+
+            setAlert({
+                message: "Account created successfully! Redirecting...",
+                type: "success"
+            });
+
+            setTimeout(() => {
+                navigate("/login");
+            }, 2000);
+
         }catch (err) {
-            //TODO Jakiś error normalny do wyświetlenia
             console.error("Błąd rejestracji:", err);
+            const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
+            setAlert({
+                message: errorMessage,
+                type: "error"
+            });
         }
     }
 
     return (
         <div className={"login-container"}>
+            {alert && (
+                <PopupAlert
+                    message={alert.message}
+                    type={alert.type}
+                    onClose={() => setAlert(null)}
+                />
+            )}
+
             <div className={"login-card"}>
                 <div className={"login-header"}>
 

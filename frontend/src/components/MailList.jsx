@@ -3,6 +3,7 @@ import MailItem from "./MailItem.jsx";
 import {Funnel, MoveRight, Trash2, Star, ChevronRight, ChevronLeft, Loader2} from "lucide-react"
 import { useEffect, useRef, useState} from "react";
 import {mailService} from "../services/MailService.js";
+import PopupAlert from "./PopupAlert.jsx";
 
 
 function MailList({
@@ -21,6 +22,8 @@ function MailList({
     const [isMoveMenuOpen, setIsMoveMenuOpen] = useState(false);
     const [isActionLoading, setIsActionLoading] = useState(false);
     const dropdownRef = useRef(null);
+
+    const [alert, setAlert] = useState(null);
 
     const availableFolders = ["INBOX", "DRAFTS", "SENT", "STARRED", "SPAM", "TRASH"];
 
@@ -85,6 +88,7 @@ function MailList({
         if (!accountEmail || selectedMails.length === 0) return;
 
         setIsActionLoading(true);
+        const count = selectedMails.length;
 
         try{
             const mailsToMove = mails.filter(m => selectedMails.includes(m.id));
@@ -97,19 +101,25 @@ function MailList({
             setSelectedMails([]);
             setIsMoveMenuOpen(false);
             onRefresh?.();
+            setAlert({
+                message: `Successfully moved ${count} ${count === 1 ? 'message' : 'messages'} to ${targetFolder}`,
+                type: "success",
+                action: () => setAlert(null)
+            })
+
     }catch (err) {
             console.error("Error moving mails: ", err);
-            alert("Failed to move mails: " + err.message);
+            setAlert({
+                message: `Failed to move messages: ${err.message}`,
+                type: "error",
+                action: () => setAlert(null)
+            })
         }finally {
             setIsActionLoading(false);
         }
     };
 
     const handleDelete = () => {
-        executeMoveMails("TRASH");
-    };
-
-    const handleArchive = () => {
         executeMoveMails("TRASH");
     };
 
@@ -124,6 +134,13 @@ function MailList({
 
     return (
         <section className={"mail-section"}>
+            {alert && (
+                <PopupAlert
+                    message={alert.message}
+                    type={alert.type}
+                    onClose={alert.action}
+                />
+            )}
             <div className={"mail-toolbar"}>
                 <div className={"toolbar-left"}>
                     {currentMails.length > 0 && (
