@@ -1,0 +1,334 @@
+.mail-section{
+    flex: 1;
+    background: var(--mail-section-bg);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 50px;
+    min-width: 0;
+}
+
+.mail-toolbar{
+    height: 42px;
+    min-height: 42px;
+    background: var(--mail-toolbar-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border-medium);
+}
+
+.toolbar-right{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 12px;
+}
+
+.toolbar-right span {
+    color: var(--text-date);
+}
+
+.filter-btn{
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.mail-list{
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1;
+    min-width: 0;
+}
+
+.mail-item{
+    min-height: 50px;
+    display: grid;
+    grid-template-columns: 4px 40px 180px 1fr 1fr 100px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-ultra-low);
+    padding-right: 20px;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.mail-sender,
+.mail-subject,
+.mail-preview {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.mail-item:hover{
+    background: var(--bg-layer-low);
+}
+
+.mail-item.active{
+    background: var(--bg-layer-medium);
+}
+
+.mail-status{
+    width: 4px;
+    height: 100%;
+    min-height: 50px;
+    background: transparent;
+}
+
+.mail-checkbox{
+    display: flex;
+    justify-content: center;
+    padding-left: 12px;
+    background-color: revert;
+    accent-color: var(--accent-blue);
+}
+
+.mail-checkbox input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    cursor: pointer;
+
+    background-color: var(--panel-bg);
+    border: 2px solid var(--border-high);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.15s ease-in-out;
+}
+
+.mail-checkbox input[type="checkbox"]:hover {
+    border-color: var(--accent-blue);
+}
+
+.mail-checkbox input[type="checkbox"]:checked {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.mail-checkbox input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+}
+
+.mail-sender{
+    font-weight: 600;
+    font-size: 14px;
+    padding: 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mail-subject{
+    font-size: 13px;
+    padding: 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mail-preview{
+    font-size: 13px;
+    color: var(--text-preview);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 8px;
+}
+
+.mail-date{
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding-right: 8px;
+}
+
+.toolbar-left{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.action-buttons{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.action-btn{
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.action-btn:hover{
+    background: var(--bg-hover-light);
+    color: var(--text-primary);
+}
+
+.selected-count{
+    font-size: 12px;
+    color: var(--text-date);
+    margin-left: 8px;
+}
+
+.path-text{
+    color: var(--text-date);
+}
+
+.mail-pagination{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-low);
+    background: var(--bg-pagination);
+    flex-shrink: 0;
+}
+
+.pagination-info{
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.pagination-buttons{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-btn{
+    background: transparent;
+    border: 1px solid var(--border-high);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled){
+    background: var(--border-medium);
+    color: var(--text-primary);
+}
+
+.pagination-btn:disabled{
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.pagination-num{
+    background: transparent;
+    border: 1px solid var(--border-high);
+    color: var(--text-secondary);
+    cursor: pointer;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.pagination-num:hover{
+    background: var(--border-medium);
+    color: var(--text-primary);
+}
+
+.pagination-num.active{
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+}
+
+.pagination-dots{
+    color: var(--text-preview);
+    font-size: 13px;
+    padding: 0 4px;
+}
+
+.loading-state{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--text-loading);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+.move-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.move-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 100;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-medium);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 130px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.dropdown-item {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+    transition: background 0.15s ease;
+}
+
+.dropdown-item:hover {
+    background: var(--bg-hover-light);
+}
+

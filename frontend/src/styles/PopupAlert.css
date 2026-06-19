@@ -1,0 +1,95 @@
+.popup-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.popup-alert {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--popup-bg);
+    box-shadow: var(--popup-shadow);
+    border-radius: 6px;
+    pointer-events: auto;
+    min-width: 280px;
+    max-width: 450px;
+    overflow: hidden;
+    animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.content-wrapper {
+    display: flex;
+    padding: 14px 20px;
+    align-items: center;
+    justify-content: flex-start;
+    flex-direction: row;
+    width: 100%;
+}
+
+.icon-holder{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alert-icon.error{
+    color: var(--error-color);
+}
+
+.alert-icon.success{
+    color: var(--countdown-bg);
+}
+
+.alert-icon.info{
+    color: var(--accent-blue);
+}
+
+.desc-holder {
+    padding-left: 12px;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.desc-holder p{
+    margin: 0;
+}
+
+.countdown-bar {
+    width: 100%;
+    background-color: var(--countdown-bg);
+    overflow: hidden;
+    height: 4px;
+    animation: countdown 2s linear forwards;
+}
+
+.popup-alert.error .countdown-bar{
+    background-color: var(--error-color);
+}
+
+@keyframes slideIn {
+    from{
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+
+    to{
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes countdown {
+    from{
+        width: 100%;
+    }
+
+    to{
+        width: 0%;
+    }
+}

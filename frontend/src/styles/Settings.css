@@ -1,0 +1,331 @@
+body {
+    margin: 0;
+    font-family: var(--font-family, Arial, Helvetica, sans-serif);
+    font-size: clamp(11px, 2vw, 13px);
+}
+
+.main-container {
+    min-height: 100vh;
+    width: 100%;
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--settings-bg);
+}
+
+.settings-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    width: 300px;
+    height: 50px;
+    font-size: 20px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.option:hover{
+    opacity: 0.8;
+}
+
+.options-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    color: var(--text-primary);
+}
+
+
+.setting {
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    height: 50px;
+    font-size: 16px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.setting:hover{
+    opacity: 0.8;
+}
+
+.option i {
+    display: block;
+    padding: 10px;
+}
+
+.title-settings {
+    width: 250px;
+    text-transform: capitalize;
+    color: var(--text-primary);
+}
+
+.title-settings h1 {
+    font-size: 40px;
+}
+
+.back-button {
+    cursor: pointer;
+}
+
+.icon-left-small {
+    color: var(--text-primary);
+    font-size: 40px;
+}
+
+.search-box {
+    color: var(--text-primary);
+    background-color: var(--settings-search-bg);
+    border-radius: 20px;
+    font-size: 18px;
+    max-width: 200px;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+}
+
+.search-box input {
+    outline: none;
+    font-size: 18px;
+    max-width: 150px;
+    background-color: transparent;
+    border: 0 transparent solid;
+    color: var(--text-primary);
+}
+
+.search-box input::placeholder{
+    color: var(--text-muted);
+}
+
+.appearance-settings-container{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px 0;
+
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.setting-group{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 400px;
+}
+
+.setting-label{
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.setting-select{
+    padding: 10px 14px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-medium);
+    background-color: var(--settings-search-bg);
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.setting-select:focus{
+    border-color: var(--accent-blue);
+}
+
+.account-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+    max-width: 500px;
+    color: var(--text-primary);
+
+    max-height: 80vh;
+    overflow-y: auto;
+
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-medium);
+}
+
+.settings-section h3 {
+    font-size: 18px;
+    color: var(--text-secondary);
+}
+
+.account-settings input {
+    padding: 10px 14px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-medium);
+    background-color: var(--settings-search-bg);
+    color: var(--text-primary);
+    outline: none;
+    margin: 10px 10px;
+    transition: border-color 0.2s;
+}
+
+.account-settings input:focus {
+    border-color: var(--accent-blue);
+}
+
+.account-settings button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    background-color: var(--accent-blue);
+    color: var(--text-primary);
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.account-settings button:hover {
+    opacity: 0.9;
+}
+
+.delete-account {
+    border-bottom: none !important;
+}
+
+.delete-btn {
+    background-color: #dc3545;
+}
+
+.alert {
+    padding: 12px;
+    border-radius: 8px;
+    background-color: var(--settings-search-bg);
+    border-left: 4px solid var(--accent-blue);
+    font-size: 14px;
+}
+
+.settings-text {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0 10px 4px 10px;
+    text-align: center;
+}
+
+
+.logout-btn {
+    background-color: var(--settings-search-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-medium);
+    margin: 10px 10px;
+    align-self: center;
+}
+
+.logout-btn:hover {
+    background-color: var(--border-medium);
+    opacity: 1;
+}
+
+.alert-error {
+    border-left-color: var(--error-color);
+}
+
+.connected-accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.accounts-empty {
+    font-style: italic;
+    text-align: left;
+    margin: 0;
+}
+
+.account-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--settings-search-bg);
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-medium);
+}
+
+.account-email-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.delete-button {
+    padding: 6px 14px;
+    font-size: 13px;
+    margin: 0;
+}
+
+.scrollable-contacts-container {
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 6px;
+    margin-top: 10px;
+}
+
+.scrollable-contacts-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable-contacts-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollable-contacts-container::-webkit-scrollbar-thumb {
+    background-color: var(--border-medium);
+    border-radius: 10px;
+}
+
+.add-suggestion-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.add-suggestion-form input {
+    flex: 1;
+    margin: 0;
+}
+
+.add-suggestion-form button {
+    white-space: nowrap;
+    padding: 10px 16px;
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    background-color: transparent;
+    border-color: var(--border-medium);
+}
+
+.suggestion-item .delete-button {
+    padding: 4px 10px;
+    font-size: 12px;
+}

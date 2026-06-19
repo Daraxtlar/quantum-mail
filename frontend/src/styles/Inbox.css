@@ -1,0 +1,14 @@
+.inbox {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--body-bg);
+    width: 100vw;
+}
+
+.layout {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    overflow: hidden;
+}
