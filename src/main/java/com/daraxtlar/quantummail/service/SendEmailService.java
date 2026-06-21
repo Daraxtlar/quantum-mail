@@ -75,7 +75,6 @@ public class SendEmailService {
      *     <li>File attachments</li>
      *     <li>Automatic recipient suggestion updates</li>
      * </ul>
-     * </p>
      *
      * @param userId       identifier of the authenticated user
      * @param senders      sender email address

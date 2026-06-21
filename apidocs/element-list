@@ -1,0 +1,7 @@
+com.daraxtlar.quantummail
+com.daraxtlar.quantummail.config
+com.daraxtlar.quantummail.controller
+com.daraxtlar.quantummail.entity
+com.daraxtlar.quantummail.model
+com.daraxtlar.quantummail.repository
+com.daraxtlar.quantummail.service
