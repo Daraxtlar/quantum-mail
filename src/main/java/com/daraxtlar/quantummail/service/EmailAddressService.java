@@ -15,6 +15,13 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * Service responsible for managing user email account configurations.
+ *
+ * <p>Provides functionality for validating, storing, retrieving and removing
+ * external email accounts used by the application. Before an account is saved,
+ * both IMAP and SMTP connection settings are verified.</p>
+ */
 @Service
 public class EmailAddressService {
 
@@ -24,12 +31,26 @@ public class EmailAddressService {
     @Autowired
     private EmailCryptoService emailCryptoService;
 
+    /**
+     * Adds a new email account for a user.
+     *
+     * <p>The method validates both IMAP and SMTP configurations by attempting
+     * to establish connections using the provided credentials. If validation
+     * succeeds, the account password is encrypted and the configuration is
+     * persisted in the database.</p>
+     *
+     * @param userId identifier of the account owner
+     * @param dto    email account configuration data
+     * @return saved email account entity
+     * @throws IllegalArgumentException if the email account already exists
+     * @throws ResponseStatusException  if IMAP or SMTP validation fails
+     */
     public EmailAddress addAccount(Long userId, EmailAddressDTO dto) {
         if (emailAddressRepository.existsByEmailAddressAndUserId(dto.getEmailAddress(), userId)) {
             throw new IllegalArgumentException("Email address already exists");
         }
 
-        try{
+        try {
             Properties imapProps = new Properties();
             imapProps.put("mail.store.protocol", "imap");
             imapProps.put("mail.imap.host", dto.getImapHost());
@@ -42,11 +63,11 @@ public class EmailAddressService {
             Store store = imapSession.getStore("imap");
             store.connect(dto.getEmailAddress(), dto.getPassword());
             store.close();
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "IMAP Configuration Error: " + e.getMessage());
         }
 
-        try{
+        try {
             Properties smtpProps = new Properties();
             smtpProps.put("mail.transport.protocol", "smtp");
             smtpProps.put("mail.smtp.host", dto.getSmtpHost());
@@ -60,7 +81,7 @@ public class EmailAddressService {
             Transport transport = smtpSession.getTransport("smtp");
             transport.connect(dto.getEmailAddress(), dto.getPassword());
             transport.close();
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SMTP Configuration Error: " + e.getMessage());
         }
 
@@ -79,10 +100,23 @@ public class EmailAddressService {
         return emailAddressRepository.save(account);
     }
 
+    /**
+     * Retrieves all email accounts belonging to a user.
+     *
+     * @param userId user identifier
+     * @return list of configured email accounts
+     */
     public List<EmailAddress> getAccountsByUserId(Long userId) {
         return emailAddressRepository.findByUserId(userId);
     }
 
+    /**
+     * Deletes an email account belonging to a user.
+     *
+     * @param userId       user identifier
+     * @param emailAddress email account address to remove
+     * @throws ResponseStatusException if the account does not exist
+     */
     @Transactional
     public void deleteAccount(Long userId, String emailAddress) {
         EmailAddress account = emailAddressRepository.findByEmailAddressAndUserId(emailAddress, userId)

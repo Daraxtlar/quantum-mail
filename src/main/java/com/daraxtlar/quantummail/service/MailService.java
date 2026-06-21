@@ -14,14 +14,12 @@ import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.util.ByteArrayDataSource;
 import jakarta.transaction.Transactional;
-import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.EmailBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,29 +29,54 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-
+/**
+ * Service responsible for email synchronization, retrieval and mailbox
+ * management operations.
+ *
+ * <p>Provides functionality for synchronizing messages from external IMAP
+ * servers, managing mailbox folders, retrieving email content and
+ * maintaining locally cached email metadata.</p>
+ */
 @Service
 public class MailService {
+
+    /**
+     * Thread-local cache containing detected folder mappings
+     * for the currently connected mailbox.
+     */
+    private final ThreadLocal<Map<String, String>> threadLocalFolderMap = new ThreadLocal<>();
+    /**
+     * Thread-local IMAP store connection used during mailbox operations.
+     */
+    private final ThreadLocal<Store> threadLocalStore = new ThreadLocal<>();
+    /**
+     * Collection of currently active mailbox synchronizations used to
+     * prevent concurrent synchronization of the same folder.
+     */
+    private final Set<String> activeSyncs = ConcurrentHashMap.newKeySet();
     @Autowired
     private MailRepository mailRepository;
-
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private ImapMailRepository imapMailRepository;
-
     @Autowired
     private EmailAddressRepository emailAddressRepository;
-
     @Autowired
     private EmailCryptoService emailCryptoService;
 
-    private final ThreadLocal<Map<String, String>> threadLocalFolderMap = new ThreadLocal<>();
-
-    private final ThreadLocal<Store> threadLocalStore = new ThreadLocal<>();
-    private final Set<String> activeSyncs = ConcurrentHashMap.newKeySet();
-
+    /**
+     * Establishes or reuses an IMAP connection for the specified email account.
+     *
+     * <p>If an active connection for the requested account already exists in the
+     * current thread, it is reused. Otherwise, a new authenticated IMAP
+     * connection is created and stored in thread-local storage.</p>
+     *
+     * @param accountEmail email account address
+     * @param userId       owner of the email account
+     * @throws MessagingException if the IMAP connection cannot be established
+     * @throws SecurityException  if the email account configuration cannot be found
+     */
     private void getConnectedStore(String accountEmail, Long userId) throws MessagingException {
         Store store = threadLocalStore.get();
 
@@ -82,9 +105,21 @@ public class MailService {
         threadLocalStore.set(store);
     }
 
-
-
-    public boolean syncFolderFromImap(Long userId, String accountEmail ,String folderName) {
+    /**
+     * Synchronizes a mailbox folder with the remote IMAP server.
+     *
+     * <p>The method downloads message metadata, updates message status flags
+     * such as read and starred state, and stores new messages in the local
+     * database. Duplicate synchronization requests for the same mailbox folder
+     * are automatically ignored.</p>
+     *
+     * @param userId       identifier of the authenticated user
+     * @param accountEmail email account address
+     * @param folderName   mailbox folder to synchronize
+     * @return {@code true} if synchronization completed successfully,
+     * otherwise {@code false}
+     */
+    public boolean syncFolderFromImap(Long userId, String accountEmail, String folderName) {
         String folderToUse = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName;
 
         String syncKey = accountEmail + ":" + folderToUse;
@@ -95,7 +130,7 @@ public class MailService {
 
         Folder folder = null;
 
-        try{
+        try {
             getConnectedStore(accountEmail, userId);
             Store store = threadLocalStore.get();
 
@@ -105,7 +140,8 @@ public class MailService {
                     if (store.getFolder("[Gmail]").exists()) {
                         isGmail = true;
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
 
                 if (!isGmail) {
                     System.out.println("[SYNC] Pomijam fizyczną synchronizację folderu STARRED dla konta nie-Gmail (gwiazdki aktualizują się automatycznie z INBOX/Wysłane).");
@@ -219,7 +255,7 @@ public class MailService {
                     imapMailRepository.save(imapMail);
                 }
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             System.err.println("[IMAP SYNC ERROR] Błąd synchronizacji folderu " + folderName);
             e.printStackTrace();
             return false;
@@ -230,6 +266,17 @@ public class MailService {
         return true;
     }
 
+    /**
+     * Synchronizes starred messages for non-Gmail accounts.
+     *
+     * <p>Since many mail providers do not expose a dedicated starred folder,
+     * flagged messages are retrieved from the inbox and synchronized with
+     * locally stored message records.</p>
+     *
+     * @param store        active IMAP store connection
+     * @param accountEmail synchronized email account
+     * @throws Exception if synchronization fails
+     */
     private void syncNonGmailStarred(Store store, String accountEmail) throws Exception {
         Folder inbox = store.getFolder("INBOX");
 
@@ -266,7 +313,7 @@ public class MailService {
                     localMail.setRead(serverRead);
                     imapMailRepository.save(localMail);
                 }
-            }else {
+            } else {
                 ImapMail imapMail = new ImapMail();
                 imapMail.setUid(uid);
                 imapMail.setAccountEmail(accountEmail);
@@ -292,6 +339,16 @@ public class MailService {
         inbox.close(false);
     }
 
+    /**
+     * Detects standard mailbox folders available on the remote mail server.
+     *
+     * <p>The method attempts to identify commonly used folders such as Inbox,
+     * Sent, Trash, Spam, Drafts and Starred using both IMAP folder attributes
+     * and localized folder names.</p>
+     *
+     * @param store active IMAP store connection
+     * @return mapping between logical folder names and actual server folder names
+     */
     private Map<String, String> detectFolders(Store store) {
         Map<String, String> folderMap = new HashMap<>();
         folderMap.put("INBOX", "INBOX");
@@ -310,7 +367,8 @@ public class MailService {
                         for (String attr : attributes) {
                             if (attr.equalsIgnoreCase("\\Sent")) folderMap.put("SENT", fullName);
                             else if (attr.equalsIgnoreCase("\\Trash")) folderMap.put("TRASH", fullName);
-                            else if (attr.equalsIgnoreCase("\\Junk") || attr.equalsIgnoreCase("\\Spam")) folderMap.put("SPAM", fullName);
+                            else if (attr.equalsIgnoreCase("\\Junk") || attr.equalsIgnoreCase("\\Spam"))
+                                folderMap.put("SPAM", fullName);
                             else if (attr.equalsIgnoreCase("\\Drafts")) folderMap.put("DRAFTS", fullName);
                         }
                     }
@@ -335,7 +393,8 @@ public class MailService {
                 if (store.getFolder("[Gmail]").exists()) {
                     folderMap.put("STARRED", "[Gmail]/Starred");
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
         } catch (Exception e) {
             System.err.println("[IMAP DETECT ERROR] Nie udało się automatycznie zmapować folderów: " + e.getMessage());
@@ -343,6 +402,17 @@ public class MailService {
         return folderMap;
     }
 
+    /**
+     * Resolves a logical folder name to the actual folder name used by the
+     * remote mail server.
+     *
+     * <p>Folder mappings are detected once per thread and cached for
+     * subsequent mailbox operations.</p>
+     *
+     * @param store      active IMAP store connection
+     * @param folderName logical folder name
+     * @return actual folder name on the mail server
+     */
     private String getRealFolderName(Store store, String folderName) {
         String cleaned = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName.trim();
         String upper = cleaned.toUpperCase();
@@ -359,22 +429,15 @@ public class MailService {
         return cachedMap.getOrDefault(upper, cleaned);
     }
 
-    public int getFolderMessageCount(Long userId, String accountEmail, String folderName) {
-        Folder folder = null;
-
-        try{
-            getConnectedStore(accountEmail, userId);
-            String realFolderName = getRealFolderName(threadLocalStore.get(), folderName);
-            folder = threadLocalStore.get().getFolder(realFolderName);
-            folder.open(Folder.READ_ONLY);
-            return folder.getMessageCount();
-        } catch (Exception e) {
-            return 0;
-        } finally {
-            closeQuietly(folder);
-        }
-    }
-
+    /**
+     * Extracts a short preview snippet from an email message.
+     *
+     * <p>The method supports plain text, HTML and multipart messages and
+     * returns a shortened representation suitable for mailbox listings.</p>
+     *
+     * @param message source email message
+     * @return message preview snippet
+     */
     private String extractSnippet(Message message) {
         try {
             String rawText = "";
@@ -404,20 +467,51 @@ public class MailService {
         }
     }
 
+    /**
+     * Removes HTML tags and returns plain text content.
+     *
+     * @param html HTML content
+     * @return cleaned plain text
+     */
     private String cleanHTML(String html) {
-        if (html == null || html.isEmpty()){
+        if (html == null || html.isEmpty()) {
             return "";
         }
         return Jsoup.parse(html).text();
     }
 
-
+    /**
+     * Safely closes a resource without propagating exceptions.
+     *
+     * @param resource resource to close
+     */
     private void closeQuietly(AutoCloseable resource) {
         if (resource != null) {
-            try { resource.close(); } catch (Exception ignored) {}
+            try {
+                resource.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 
+    /**
+     * Moves an email message between folders or updates its starred status.
+     *
+     * <p>For standard folder operations, the message is copied to the target
+     * folder and removed from the source folder. For starred operations,
+     * the IMAP flagged status is updated without physically moving the
+     * message.</p>
+     *
+     * @param userId           authenticated user identifier
+     * @param accountEmail     email account address
+     * @param sourceFolderName source folder
+     * @param targetFolderName destination folder
+     * @param uid              message UID
+     * @param sender           sender email address
+     * @param subject          message subject
+     * @param sentDate         message sent date
+     * @return {@code true} if the operation succeeds, otherwise {@code false}
+     */
     @Transactional
     public boolean moveEmailToFolder(Long userId, String accountEmail, String sourceFolderName, String targetFolderName,
                                      long uid, String sender, String subject, java.util.Date sentDate) {
@@ -516,14 +610,27 @@ public class MailService {
             if (sourceFolder != null && sourceFolder.isOpen()) {
                 try {
                     sourceFolder.close(shouldExpunge);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
         }
         return isSuccess;
     }
 
-
-    public EmailMessage getEmailMessage(Long userId, String accountEmail ,String folderName, long uid) {
+    /**
+     * Retrieves full details of an email message from the IMAP server.
+     *
+     * <p>The method marks the message as read on both the server and the
+     * local database and returns message content together with attachment
+     * metadata.</p>
+     *
+     * @param userId       authenticated user identifier
+     * @param accountEmail email account address
+     * @param folderName   mailbox folder
+     * @param uid          IMAP message UID
+     * @return populated email message model or {@code null} if not found
+     */
+    public EmailMessage getEmailMessage(Long userId, String accountEmail, String folderName, long uid) {
         Folder folder = null;
 
         try {
@@ -543,17 +650,17 @@ public class MailService {
                     String uniformFolder = (folderName == null || folderName.isEmpty()) ? "INBOX" : folderName.toUpperCase();
                     try {
                         imapMailRepository.findByAccountEmailAndFolderNameAndUid(
-                                accountEmail,
-                                uniformFolder,
-                                String.valueOf(uid))
+                                        accountEmail,
+                                        uniformFolder,
+                                        String.valueOf(uid))
                                 .ifPresent(localMail -> {
-                                    if (!localMail.isRead()){
+                                    if (!localMail.isRead()) {
                                         localMail.setRead(true);
                                         imapMailRepository.save(localMail);
                                         System.out.println("[DB UPDATE] Mail UID " + uid + " oznaczony jako przeczytany w bazie.");
                                     }
                                 });
-                    }catch (Exception dbEx){
+                    } catch (Exception dbEx) {
                         System.err.println("[DB UPDATE ERROR] Nie udało się zaktualizować statusu w bazie danych: " + dbEx.getMessage());
                     }
 
@@ -572,21 +679,31 @@ public class MailService {
                     return emailMsg;
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             closeQuietly(folder);
         }
 
         return null;
     }
 
+    /**
+     * Extracts the complete content of an email message.
+     *
+     * <p>HTML content is preferred when available. Multipart messages are
+     * traversed recursively to locate the most appropriate message body.</p>
+     *
+     * @param part MIME part to process
+     * @return extracted message content
+     * @throws Exception if content extraction fails
+     */
     private String getFullContent(Part part) throws Exception {
         if (part.isMimeType("text/html")) {
             return (String) part.getContent();
-        }else if (part.isMimeType("text/plain")) {
+        } else if (part.isMimeType("text/plain")) {
             return (String) part.getContent();
-        }else if (part.isMimeType("multipart/*")) {
+        } else if (part.isMimeType("multipart/*")) {
             Multipart mp = (Multipart) part.getContent();
             String result = "";
             for (int i = 0; i < mp.getCount(); i++) {
@@ -603,8 +720,17 @@ public class MailService {
         return "Nie można wyświetlić wiadomości";
     }
 
-
-    public byte[] downloadAttachment(Long userId,String accountEmail,String folderName, long uid, String fileName) {
+    /**
+     * Downloads an attachment from an email message.
+     *
+     * @param userId       authenticated user identifier
+     * @param accountEmail email account address
+     * @param folderName   mailbox folder
+     * @param uid          message UID
+     * @param fileName     attachment filename
+     * @return attachment data as a byte array or {@code null} if not found
+     */
+    public byte[] downloadAttachment(Long userId, String accountEmail, String folderName, long uid, String fileName) {
         Folder folder = null;
 
         try {
@@ -623,6 +749,15 @@ public class MailService {
         return null;
     }
 
+    /**
+     * Recursively searches a MIME structure for an attachment or embedded
+     * resource and returns its binary data.
+     *
+     * @param part     MIME part to inspect
+     * @param fileName target filename or content identifier
+     * @return attachment data or {@code null} if not found
+     * @throws Exception if MIME processing fails
+     */
     private byte[] findPartDataRecursive(Part part, String fileName) throws Exception {
         if (fileName.equalsIgnoreCase(part.getFileName())) {
             return part.getInputStream().readAllBytes();
@@ -648,12 +783,26 @@ public class MailService {
         return null;
     }
 
+    /**
+     * Collects metadata for all non-inline attachments contained in a message.
+     *
+     * @param message email message
+     * @return list of attachment descriptors
+     * @throws Exception if attachment processing fails
+     */
     private List<Attachment> getAttachmentsInfo(Message message) throws Exception {
         List<Attachment> attachments = new ArrayList<>();
         extractAttachmentsRecursive(message, attachments);
         return attachments;
     }
 
+    /**
+     * Recursively traverses a MIME structure and extracts attachment metadata.
+     *
+     * @param part MIME part to inspect
+     * @param list destination attachment collection
+     * @throws Exception if attachment extraction fails
+     */
     private void extractAttachmentsRecursive(Part part, List<Attachment> list) throws Exception {
         String disposition = part.getDisposition();
         String fileName = part.getFileName();
@@ -665,7 +814,7 @@ public class MailService {
         if (fileName != null && !isInlineImage) {
             list.add(new Attachment(fileName, part.getContentType(), part.getSize()));
         }
-        
+
         if (part.isMimeType("multipart/*")) {
             Multipart mp = (Multipart) part.getContent();
             for (int i = 0; i < mp.getCount(); i++) {
@@ -674,6 +823,19 @@ public class MailService {
         }
     }
 
+    /**
+     * Loads an email message from the IMAP server and converts it into a
+     * reusable email representation.
+     *
+     * <p>This method is primarily used for reply and forward operations,
+     * preserving embedded images and attachment references.</p>
+     *
+     * @param userId       authenticated user identifier
+     * @param accountEmail email account address
+     * @param folderName   mailbox folder
+     * @param uid          message UID
+     * @return prepared email object or {@code null} if conversion fails
+     */
     public Email prepareBaseEmailFromImap(Long userId, String accountEmail, String folderName, long uid) {
         Folder folder = null;
         try {
@@ -726,14 +888,38 @@ public class MailService {
         return null;
     }
 
+    /**
+     * Retrieves recently used recipients for a specific sender account.
+     *
+     * @param userId      authenticated user identifier
+     * @param senderEmail sender email address
+     * @return list of suggested recipient addresses
+     */
     public List<String> getSuggestedRecipients(Long userId, String senderEmail) {
         return mailRepository.findRecentRecipientsByEmail(userId, senderEmail, PageRequest.of(0, 10));
     }
 
+    /**
+     * Retrieves recently used recipients across all user email accounts.
+     *
+     * @param userId authenticated user identifier
+     * @return list of suggested recipient addresses
+     */
     public List<String> getGlobalSuggestedRecipients(Long userId) {
         return mailRepository.findRecentRecipientsByAccount(userId, PageRequest.of(0, 20));
     }
 
+    /**
+     * Adds or updates a recipient suggestion entry.
+     *
+     * <p>If the recipient already exists, its last usage timestamp is
+     * refreshed instead of creating a duplicate record.</p>
+     *
+     * @param userId         authenticated user identifier
+     * @param senderEmail    sender email address
+     * @param recipientEmail recipient email address
+     * @return persisted suggestion entity
+     */
     @Transactional
     public Mail addSuggestedRecipient(Long userId, String senderEmail, String recipientEmail) {
         Optional<Mail> existingMail = mailRepository.findBySenderEmailAndRecipientEmailAndUserId(senderEmail, recipientEmail, userId);
@@ -756,6 +942,13 @@ public class MailService {
         return mailRepository.save(newMail);
     }
 
+    /**
+     * Removes a saved recipient suggestion.
+     *
+     * @param userId         authenticated user identifier
+     * @param senderEmail    sender email address
+     * @param recipientEmail recipient email address
+     */
     @Transactional
     public void deleteSuggestedRecipient(Long userId, String senderEmail, String recipientEmail) {
         Mail mail = mailRepository.findBySenderEmailAndRecipientEmailAndUserId(senderEmail, recipientEmail, userId)
@@ -764,6 +957,12 @@ public class MailService {
         mailRepository.delete(mail);
     }
 
+    /**
+     * Retrieves all email accounts associated with a user.
+     *
+     * @param userId authenticated user identifier
+     * @return list of email account addresses
+     */
     public List<String> getUserEmailAccounts(Long userId) {
         return emailAddressRepository.findByUserId(userId)
                 .stream()
@@ -771,9 +970,23 @@ public class MailService {
                 .toList();
     }
 
-
-
-    public org.springframework.data.domain.Page<ImapMail> getEmailsFromDb(Long userId, String accountEmail ,String folderName, String query, int page, int size) {
+    /**
+     * Retrieves paginated email metadata from the local database.
+     *
+     * <p>The method supports folder filtering, full-text search and special
+     * handling of starred messages.</p>
+     *
+     * @param userId       authenticated user identifier
+     * @param accountEmail email account address
+     * @param folderName   mailbox folder
+     * @param query        optional search phrase
+     * @param page         requested page number
+     * @param size         page size
+     * @return page containing email metadata records
+     * @throws SecurityException if the user does not have access to the
+     *                           specified email account
+     */
+    public org.springframework.data.domain.Page<ImapMail> getEmailsFromDb(Long userId, String accountEmail, String folderName, String query, int page, int size) {
         boolean hasAccess = emailAddressRepository.findByEmailAddressAndUserId(accountEmail, userId).isPresent();
         if (!hasAccess) {
             throw new SecurityException("Brak dostępu do tego konta email: " + accountEmail);
@@ -792,5 +1005,4 @@ public class MailService {
 
         return imapMailRepository.findByAccountEmailAndFolderNameOrderBySentDateDescIdDesc(accountEmail, folderToUse, pageable);
     }
-
 }

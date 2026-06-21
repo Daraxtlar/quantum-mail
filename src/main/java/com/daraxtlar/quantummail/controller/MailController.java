@@ -18,6 +18,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller responsible for email management operations.
+ *
+ * <p>Provides endpoints for sending emails, synchronizing mailbox folders,
+ * retrieving messages and attachments, managing recipient suggestions,
+ * and moving messages between folders.</p>
+ */
 @RestController
 @RequestMapping("/api/mails")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -26,6 +33,13 @@ public class MailController {
     private final MailService mailService;
     JwtService jwtService;
 
+    /**
+     * Creates a new mail controller instance.
+     *
+     * @param sendEmailService service responsible for sending emails
+     * @param mailService      service responsible for email management operations
+     * @param jwtService       service used to extract user information from JWT tokens
+     */
     @Autowired
     public MailController(SendEmailService sendEmailService, MailService mailService, JwtService jwtService) {
         this.sendEmailService = sendEmailService;
@@ -33,11 +47,32 @@ public class MailController {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Extracts the authenticated user's identifier from a JWT authorization header.
+     *
+     * @param bearerToken JWT authorization token
+     * @return identifier of the authenticated user
+     */
     private Long getUserIdFromHeader(String bearerToken) {
         String token = bearerToken.substring(7);
         return jwtService.getUserIdFromToken(token);
     }
 
+    /**
+     * Sends an email using one of the user's configured email accounts.
+     *
+     * @param bearerToken  JWT authorization token
+     * @param senders      sender email address
+     * @param recipients   recipient email addresses
+     * @param subject      email subject
+     * @param text         email content
+     * @param method       email sending method
+     * @param files        optional email attachments
+     * @param folderName   optional folder name
+     * @param parentMailId optional parent email identifier
+     * @param actionType   optional action type
+     * @return result of the email sending operation
+     */
     @PostMapping("/send")
     public ResponseEntity<?> sendEmail(
             @RequestHeader("Authorization") String bearerToken,
@@ -53,7 +88,7 @@ public class MailController {
 
         Long userId = getUserIdFromHeader(bearerToken);
 
-        Boolean result = sendEmailService.sendEmail(userId ,senders, recipients, subject, text, method, files, folderName, parentMailId, actionType);
+        Boolean result = sendEmailService.sendEmail(userId, senders, recipients, subject, text, method, files, folderName, parentMailId, actionType);
 
         if (result) {
             return ResponseEntity.ok(Map.of("message", "Email sent successfully"));
@@ -62,6 +97,17 @@ public class MailController {
         }
     }
 
+    /**
+     * Retrieves emails from a selected mailbox folder.
+     *
+     * @param bearerToken  JWT authorization token
+     * @param accountEmail email account address
+     * @param folder       mailbox folder name
+     * @param page         requested page number
+     * @param size         number of emails per page
+     * @param query        optional search query
+     * @return paginated collection of email messages
+     */
     @GetMapping("/fetch")
     public ResponseEntity<?> fetchEmails(
             @RequestHeader("Authorization") String bearerToken,
@@ -73,7 +119,7 @@ public class MailController {
 
         Long userId = getUserIdFromHeader(bearerToken);
 
-        Page<ImapMail> emailPage = mailService.getEmailsFromDb(userId, accountEmail ,folder, query, page, size);
+        Page<ImapMail> emailPage = mailService.getEmailsFromDb(userId, accountEmail, folder, query, page, size);
 
         return ResponseEntity.ok(Map.of(
                 "emails", emailPage.getContent(),
@@ -81,14 +127,22 @@ public class MailController {
                 "totalPages", emailPage.getTotalPages(),
                 "currentPage", page,
                 "folder", folder
-                ));
+        ));
     }
 
+    /**
+     * Synchronizes a mailbox folder with the remote IMAP server.
+     *
+     * @param bearerToken  JWT authorization token
+     * @param accountEmail email account address
+     * @param folder       mailbox folder to synchronize
+     * @return synchronization result
+     */
     @PostMapping("/sync")
     public ResponseEntity<?> syncEmails(
             @RequestHeader("Authorization") String bearerToken,
             @RequestParam String accountEmail,
-            @RequestParam(defaultValue = "INBOX") String folder){
+            @RequestParam(defaultValue = "INBOX") String folder) {
 
         Long userId = getUserIdFromHeader(bearerToken);
 
@@ -100,6 +154,21 @@ public class MailController {
         }
     }
 
+    /**
+     * Retrieves an attachment associated with an email message.
+     *
+     * <p>The attachment can be displayed inline in the browser or downloaded
+     * as a file depending on the value of the {@code download} parameter.</p>
+     *
+     * @param bearerToken  JWT authorization token from the request header
+     * @param queryToken   JWT authorization token provided as a query parameter
+     * @param accountEmail email account address
+     * @param folder       mailbox folder
+     * @param uid          unique message identifier
+     * @param filename     attachment filename
+     * @param download     determines whether the attachment should be downloaded
+     * @return attachment content
+     */
     @GetMapping("/{accountEmail}/{folder}/{uid}/attachments/{filename:.+}")
     public ResponseEntity<byte[]> downloadFile(
             @RequestHeader(value = "Authorization", required = false) String bearerToken,
@@ -132,10 +201,19 @@ public class MailController {
 
         return ResponseEntity.ok()
                 .contentType(mediaType)
-                .header(HttpHeaders.CONTENT_DISPOSITION, disposition +"; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + filename + "\"")
                 .body(data);
     }
 
+    /**
+     * Retrieves detailed information about a specific email message.
+     *
+     * @param bearerToken  JWT authorization token
+     * @param accountEmail email account address
+     * @param folder       mailbox folder
+     * @param uid          unique message identifier
+     * @return email details
+     */
     @GetMapping("/{accountEmail}/{folder}/{uid}")
     public ResponseEntity<EmailMessage> getEmailDetails(
             @RequestHeader("Authorization") String bearerToken,
@@ -144,35 +222,55 @@ public class MailController {
             @PathVariable long uid) {
 
         Long userId = getUserIdFromHeader(bearerToken);
-        EmailMessage email = mailService.getEmailMessage(userId, accountEmail ,folder, uid);
+        EmailMessage email = mailService.getEmailMessage(userId, accountEmail, folder, uid);
 
         if (email != null) {
             return ResponseEntity.ok(email);
-        }else {
+        } else {
             return ResponseEntity.notFound().build();
         }
     }
 
+    /**
+     * Retrieves recipient suggestions associated with a specific sender address.
+     *
+     * @param bearerToken JWT authorization token
+     * @param senderEmail sender email address
+     * @return list of suggested recipient addresses
+     */
     @GetMapping("/suggestions")
     public ResponseEntity<List<String>> getSuggestions(
             @RequestHeader("Authorization") String bearerToken,
             @RequestParam String senderEmail) {
         Long userId = getUserIdFromHeader(bearerToken);
 
-        return ResponseEntity.ok(mailService.getSuggestedRecipients(userId ,senderEmail));
+        return ResponseEntity.ok(mailService.getSuggestedRecipients(userId, senderEmail));
     }
 
+    /**
+     * Retrieves all recipient suggestions available to the authenticated user.
+     *
+     * @param bearerToken JWT authorization token
+     * @return list of suggested recipient addresses
+     */
     @GetMapping("/suggestions/global")
     public ResponseEntity<List<String>> getGlobalSuggestions(@RequestHeader("Authorization") String bearerToken) {
         Long userId = getUserIdFromHeader(bearerToken);
         return ResponseEntity.ok(mailService.getGlobalSuggestedRecipients(userId));
     }
 
+    /**
+     * Adds a recipient suggestion for future email composition.
+     *
+     * @param bearerToken JWT authorization token
+     * @param payload     request payload containing sender and recipient email addresses
+     * @return information about the created suggestion
+     */
     @PostMapping("/suggestions/add")
     public ResponseEntity<?> addSuggestion(
             @RequestHeader("Authorization") String bearerToken,
-            @RequestBody Map<String, String> payload){
-        try{
+            @RequestBody Map<String, String> payload) {
+        try {
             Long userId = getUserIdFromHeader(bearerToken);
             String senderEmail = payload.get("senderEmail");
             String recipientEmail = payload.get("recipientEmail");
@@ -186,13 +284,22 @@ public class MailController {
                     "message", "Suggested recipient added successfully",
                     "id", saved.getId(),
                     "recipientEmail", saved.getRecipientEmail()));
-        }catch (ResponseStatusException e){
+        } catch (ResponseStatusException e) {
+            assert e.getReason() != null;
             return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason()));
-        }catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
         }
     }
 
+    /**
+     * Removes a stored recipient suggestion.
+     *
+     * @param bearerToken    JWT authorization token
+     * @param senderEmail    sender email address
+     * @param recipientEmail recipient email address
+     * @return operation result information
+     */
     @DeleteMapping("/suggestions/delete")
     public ResponseEntity<?> deleteSuggestion(
             @RequestHeader("Authorization") String bearerToken,
@@ -207,12 +314,19 @@ public class MailController {
                     "message", "Suggested recipient deleted successfully",
                     "recipientEmail", recipientEmail));
         } catch (ResponseStatusException e) {
+            assert e.getReason() != null;
             return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
         }
     }
 
+    /**
+     * Retrieves all email accounts configured by the authenticated user.
+     *
+     * @param bearerToken JWT authorization token
+     * @return list of configured email account addresses
+     */
     @GetMapping("/accounts")
     public ResponseEntity<List<String>> getUserEmailAccounts(
             @RequestHeader("Authorization") String bearerToken) {
@@ -221,10 +335,17 @@ public class MailController {
         return ResponseEntity.ok(accounts);
     }
 
+    /**
+     * Moves an email message from one folder to another.
+     *
+     * @param bearerToken JWT authorization token
+     * @param request     request containing message and folder information
+     * @return operation result information
+     */
     @PostMapping("/move")
     public ResponseEntity<Map<String, Object>> moveMail(
             @RequestHeader("Authorization") String bearerToken,
-            @RequestBody MoveMailRequest request){
+            @RequestBody MoveMailRequest request) {
         Long userId = getUserIdFromHeader(bearerToken);
 
         boolean isMoved = mailService.moveEmailToFolder(
@@ -244,7 +365,7 @@ public class MailController {
             response.put("success", true);
             response.put("message", "Mail moved successfully");
             return ResponseEntity.ok(response);
-        }else {
+        } else {
             response.put("success", false);
             response.put("message", "Mail not moved successfully");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);

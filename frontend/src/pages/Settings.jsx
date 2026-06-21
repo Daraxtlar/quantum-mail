@@ -1,18 +1,14 @@
 import "react";
 import "../styles/Settings.css"
 import "../styles/fontello.css"
-import "../components/settings/GeneralList.jsx"
-import GeneralList from "../components/settings/GeneralList.jsx";
 import AppearanceList from "../components/settings/AppearanceList.jsx";
 import {useState} from "react";
-import BehaviorList from "../components/settings/BehaviorList.jsx";
-import ComponentsList from "../components/settings/ComponentsList.jsx";
 import IntegrationsList from "../components/settings/IntegrationsList.jsx";
 import AccountList from "../components/settings/AccountList.jsx";
 import {Link} from "react-router-dom";
 
 function Settings() {
-    const [settingList, setSettingList] = useState("general")
+    const [settingList, setSettingList] = useState("appearance")
     return (
         <div className={"main-container"}>
             <div className={"settings-wrapper"}>
@@ -50,16 +46,7 @@ function Settings() {
                         </div>
                     </div>
                     {
-                        settingList === "general" && <GeneralList/>
-                    }
-                    {
                         settingList === "appearance" && <AppearanceList/>
-                    }
-                    {
-                        settingList === "behavior" && <BehaviorList/>
-                    }
-                    {
-                        settingList === "components" && <ComponentsList/>
                     }
                     {
                         settingList === "integrations" && <IntegrationsList/>
@@ -67,8 +54,6 @@ function Settings() {
                     {
                         settingList === "account" && <AccountList/>
                     }
-
-
                 </div>
             </div>
         </div>

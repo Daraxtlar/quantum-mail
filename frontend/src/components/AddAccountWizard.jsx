@@ -91,7 +91,7 @@ function AddAccountWizard({ onClose, onAccountAdded }) {
                             className="provider-card"
                             onClick={() => {
                                 window.location.href =
-                                    "http://localhost:8080/oauth/google/login";
+                                    "http://localhost:5173/oauth/google/login";
                             }}
                         >
                             <Mail size={42} />

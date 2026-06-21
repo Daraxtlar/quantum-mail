@@ -10,6 +10,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * Service responsible for user account management and authentication.
+ *
+ * <p>Provides functionality for user registration, authentication,
+ * password management and account deletion. Passwords are securely
+ * stored using BCrypt hashing and authenticated users receive
+ * JWT tokens for subsequent requests.</p>
+ */
 @Service
 public class UserService {
 
@@ -23,6 +31,15 @@ public class UserService {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Creates a new user account.
+     *
+     * <p>The method validates username uniqueness, hashes the provided
+     * password and stores the new user in the database.</p>
+     *
+     * @param request registration request containing user information
+     * @return response containing the registration result
+     */
     public ResponseEntity<AuthResponse> createUser(RegisterRequest request) {
 
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
@@ -38,7 +55,16 @@ public class UserService {
         return ResponseEntity.ok().body(new AuthResponse("User added sucessfully", true, request.getUsername()));
     }
 
-
+    /**
+     * Authenticates a user and generates a JWT access token.
+     *
+     * <p>The provided credentials are validated against the stored
+     * password hash. Upon successful authentication a JWT token
+     * containing user information is generated.</p>
+     *
+     * @param request login request containing user credentials
+     * @return authentication result and generated JWT token
+     */
     public ResponseEntity<AuthResponse> loginUser(LoginRequest request) {
 
         Optional<User> loggingUser = userRepository.findByUsername(request.getUsername());
@@ -60,6 +86,17 @@ public class UserService {
         return ResponseEntity.ok().body(new AuthResponse("User logged in successfully", true, user.getUsername(), token));
     }
 
+    /**
+     * Changes the password of an existing user account.
+     *
+     * <p>The current password must be provided and successfully
+     * validated before the new password is stored.</p>
+     *
+     * @param username    authenticated username
+     * @param oldPassword current account password
+     * @param newPassword new password to be stored
+     * @return operation result
+     */
     public ResponseEntity<String> changePassword(String username, String oldPassword, String newPassword) {
         Optional<User> userOptional = userRepository.findByUsername(username);
 
@@ -76,6 +113,16 @@ public class UserService {
         return ResponseEntity.ok().body("Password changed successfully");
     }
 
+    /**
+     * Permanently deletes a user account.
+     *
+     * <p>The account password must be verified before the account
+     * is removed from the database.</p>
+     *
+     * @param username account username
+     * @param password account password
+     * @return operation result
+     */
     public ResponseEntity<String> deleteAccount(String username, String password) {
         Optional<User> userOptional = userRepository.findByUsername(username);
 

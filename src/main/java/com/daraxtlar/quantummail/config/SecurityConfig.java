@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -14,13 +15,38 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * Spring Security configuration class responsible for configuring
+ * authentication, authorization, session management and CORS settings.
+ *
+ * <p>The application uses stateless JWT-based authentication. Public endpoints
+ * related to authentication are accessible without credentials, while protected
+ * resources require a valid JWT token.</p>
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    /**
+     * Creates and configures the application's security filter chain.
+     *
+     * <p>CSRF protection is disabled because the application uses stateless
+     * authentication. The JWT filter is registered before the standard
+     * Spring Security username/password authentication filter.</p>
+     *
+     * @param http                    Spring Security HTTP configuration object
+     * @param jwtFilter               custom JWT authentication filter
+     * @param corsConfigurationSource CORS configuration source
+     * @return configured security filter chain
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter, CorsConfigurationSource corsConfigurationSource) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtFilter jwtFilter,
+            CorsConfigurationSource corsConfigurationSource) {
+
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -29,9 +55,16 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
+    /**
+     * Creates a CORS configuration allowing requests from the frontend
+     * development server.
+     *
+     * @return configured CORS configuration source
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -42,6 +75,7 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 }
